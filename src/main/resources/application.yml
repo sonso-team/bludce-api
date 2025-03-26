@@ -1,0 +1,17 @@
+logging:
+  config: 'classpath:log4j2.yml'
+  level:
+    org.sonso: debug
+
+spring:
+  application:
+    name: bludce-api
+  datasource:
+    username: bludce
+    password: bludce
+#    url: jdbc:postgresql://bludce_db:5700/bludce  # docker-compose
+    url: jdbc:postgresql://localhost:5700/bludce   # idea
+    driver-class-name: org.postgresql.Driver
+
+server:
+  port: 7200
