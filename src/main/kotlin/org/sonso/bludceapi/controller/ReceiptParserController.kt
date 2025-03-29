@@ -17,14 +17,13 @@ class ReceiptParserController(
     private val receiptParserService: ReceiptParserService
 ) {
 
-    private val log = LoggerFactory.getLogger(ReceiptParserController::class.java)
+    private val log = LoggerFactory.getLogger(this::class.java)
 
     @PostMapping()
     fun calculate(
         @RequestParam("file") file: MultipartFile
     ): ResponseEntity<List<ReceiptItemResponse>> {
         log.info("File received: ${file.originalFilename}, size: ${file.size} bytes")
-
         return ResponseEntity(receiptParserService.getImageFromText(file), HttpStatus.OK)
     }
 }

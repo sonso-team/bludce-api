@@ -1,7 +1,7 @@
 package org.sonso.bludceapi.client
 
 import org.slf4j.LoggerFactory
-import org.sonso.bludceapi.dto.response.ocr.OcrServiceClientResponse
+import org.sonso.bludceapi.dto.response.OcrServiceClientResponse
 import org.springframework.cloud.openfeign.FallbackFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.bind.annotation.RequestPart

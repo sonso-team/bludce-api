@@ -27,27 +27,25 @@ class ReceiptParserService(
         val items = mutableListOf<ReceiptItemResponse>()
 
         val linesColumns: MutableList<List<String>> = mutableListOf()
-        for (line in lines) {
+        lines.forEach { line ->
             val columns = line
                 .split("\t")
                 .map { it.trim() }
                 .filter { it.isNotEmpty() }
 
-            if (columns.size < 2) {
-                continue
-            }
-            linesColumns.add(columns)
+            linesColumns.add(columns.takeIf { it.size >= 2 } ?: return@forEach)
         }
 
-        for (columns in linesColumns) {
+        linesColumns.forEach { columns ->
             val priceStr = columns.last()
             val price = try {
                 priceStr.replace(',', '.').toDouble()
             } catch (e: NumberFormatException) {
-                continue
+                log.debug("Invalid price $priceStr")
+                return@forEach
             }
 
-            val quantityStr = if (columns.size > 2) columns[columns.size - 2] else null
+            val quantityStr = columns[columns.size - 2].takeIf { columns.size > 2 }
             val quantity = quantityStr?.let {
                 try {
                     it.replace(',', '.').toDouble()
@@ -56,7 +54,7 @@ class ReceiptParserService(
                 }
             } ?: 1.0
 
-            val name: String = if (quantityStr != null && quantityStr == columns[columns.size - 2]) {
+            val name = if (quantityStr != null && quantityStr == columns[columns.size - 2]) {
                 columns.subList(0, columns.size - 2).joinToString(" ")
             } else {
                 columns.subList(0, columns.size - 1).joinToString(" ")
