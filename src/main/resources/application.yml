@@ -13,5 +13,10 @@ spring:
     url: jdbc:postgresql://localhost:5700/bludce   # idea
     driver-class-name: org.postgresql.Driver
 
+app:
+  ocr:
+    api-key: K88899112888957
+    url: https://api.ocr.space
+
 server:
   port: 7200
