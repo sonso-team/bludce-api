@@ -1,0 +1,114 @@
+name: Bobr API
+
+on:
+  pull_request:
+    branches: ["master", "develop"]
+
+env:
+  JAVA_VERSION: '21'
+  TARGET_DIR: /home/kinoko/bludce/bludce-api
+  BACKUP_DIR: /home/kinoko/backup/bludce
+  JAR_DIR: /tmp/bludce
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew clean build -x test
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-jars
+          path: '**/build/libs/*.jar'
+
+  deploy:
+    if: github.event.pull_request.merged == true && github.base_ref == 'master'
+    runs-on: self-hosted
+    needs: build
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Create backup
+        run: |
+          if [ -d "${{ env.TARGET_DIR }}" ]; then
+            sudo mkdir -p "${{ env.BACKUP_DIR }}"
+            sudo cp -r "${{ env.TARGET_DIR }}"/* "${{ env.BACKUP_DIR }}"
+            echo "✅ Backup успешно создан"
+          else
+            echo "⚠️ Нет текущего деплоя, бекап не создавался"
+          fi
+
+      - name: Stop existing containers
+        run: |
+          if [ -f "${{ env.TARGET_DIR }}/docker-compose.yml" ]; then
+            docker compose -f "${{ env.TARGET_DIR }}/docker-compose.yml" down
+          fi
+
+      - name: Clean target dir
+        run: |
+          sudo rm -rf "${{ env.TARGET_DIR }}"
+          sudo mkdir -p "${{ env.TARGET_DIR }}"
+
+      - name: Copy project files
+        run: |
+          sudo cp -r ./* "${{ env.TARGET_DIR }}"
+          sudo chown -R kinoko:kinoko "${{ env.TARGET_DIR }}"
+
+      - name: Download JAR artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jars
+          path: "${{ env.JAR_DIR }}"
+
+      - name: Move JARs to target
+        run: |
+          sudo cp -r "${{ env.JAR_DIR }}"/*.jar "${{ env.TARGET_DIR }}"
+          sudo rm -rf "${{ env.JAR_DIR }}"
+
+      - name: Deploy via Docker Compose
+        run: |
+          docker compose -f "${{ env.TARGET_DIR }}/docker-compose.yml" up --build -d
+          sleep 30
+          if docker compose -f "${{ env.TARGET_DIR }}/docker-compose.yml" logs | grep -iq "ERROR"; then
+            echo "🚨 Ошибка в логах!"
+            docker compose -f "${{ env.TARGET_DIR }}/docker-compose.yml" logs
+            exit 1
+          else
+            echo "✅ Деплой успешен, ошибок нет"
+          fi
+
+      - name: Cleanup backup after success
+        run: |
+          sudo rm -rf "${{ env.BACKUP_DIR }}"
+          echo "🧹 Очистка бекапа завершена"
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "🔄 Выполняем откат..."
+          docker compose -f "${{ env.TARGET_DIR }}/docker-compose.yml" down || true
+          sudo rm -rf "${{ env.TARGET_DIR }}"
+          if [ -d "${{ env.BACKUP_DIR }}" ]; then
+            sudo mv "${{ env.BACKUP_DIR }}" "${{ env.TARGET_DIR }}"
+            sudo chown -R kinoko:kinoko "${{ env.TARGET_DIR }}"
+            docker compose -f "${{ env.TARGET_DIR }}/docker-compose.yml" up -d
+            echo "✅ Откат успешен"
+          else
+            echo "⚠️ Откат невозможен, нет бекапа"
+          fi
