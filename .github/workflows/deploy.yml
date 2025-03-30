@@ -2,7 +2,8 @@ name: Блюдце API
 
 on:
   pull_request:
-    branches: ["master", "develop"]
+    types: [opened, closed]
+    branches: [master, develop]
 
 env:
   JAVA_VERSION: '21'
@@ -13,6 +14,9 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: >
+      (github.event.action == 'opened' && github.event.pull_request.base.ref == 'develop')
+      || (github.event.action == 'closed' && github.event.pull_request.base.ref == 'master')
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -31,14 +35,16 @@ jobs:
         run: ./gradlew clean build
 
       - name: Upload artifacts
-        if: github.event.pull_request.merged == true && (github.event.pull_request.base.ref == 'develop' || github.event.pull_request.base.ref == 'master')
+        # Артефакты загружаем только если PR закрыт и базовая ветка master
+        if: github.event.action == 'closed' && github.event.pull_request.base.ref == 'master'
         uses: actions/upload-artifact@v4
         with:
           name: app-jars
           path: '**/build/libs/*.jar'
 
   deploy:
-    if: github.event.pull_request.merged == true && github.base_ref == 'master'
+    # Деплой выполняется только для закрытого PR в master
+    if: github.event.action == 'closed' && github.event.pull_request.base.ref == 'master'
     runs-on: self-hosted
     needs: build
     steps:
