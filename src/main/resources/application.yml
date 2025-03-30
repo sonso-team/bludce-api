@@ -1,7 +1,7 @@
 logging:
   config: 'classpath:log4j2.yml'
-  level:
-    org.sonso: debug
+#  level:
+#    org.sonso: debug
 
 spring:
   application:
@@ -9,9 +9,30 @@ spring:
   datasource:
     username: bludce
     password: bludce
-#    url: jdbc:postgresql://bludce_db:5700/bludce  # docker-compose
-    url: jdbc:postgresql://localhost:5700/bludce   # idea
+    url: jdbc:postgresql://bludce_db:5432/bludce  # docker-compose
+#    url: jdbc:postgresql://localhost:5700/bludce   # idea
     driver-class-name: org.postgresql.Driver
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: my.teamup.platform@gmail.com
+    password: pkfqcauuhwmitfzg
+    test-connection: true
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+app:
+  auth:
+    admin-code: 123123
+    password-life-time: 120000
+    token:
+      access-life-time: 900000
+      refresh-life-time: 2592000000
+      secret: 59d4556bce780017b631bb3721415e0127d536ebc586aa1e2659382be327d30e167fcbfd5ad1033dd98c6394c9a640a28a118d4f835e0548f200af47700b192a5fb2d0e24d0fe552243424ac58648984e181e804f22dbf110078e664a58e27e4a82ae9d68afee4f7aadb58ccb46ab9c3974db2dfd0160b4bc65dda9e04b2243076140c12aa2c7e96409459461df4aa6cb7137ad5ae05bb81df16999af9b655051f7d9e7f173c042303e949873c57c21a7ef59f7eabb228f417bd4add2c6558e222a44912961dc0dee195fe9bdaf19e8e181fe0cce4f3dadb2747b1a950d0d22a3f68615beec8e42378c33198b406b01361e2130998bdfa375f5c2aa4282b4f97
 
 server:
   port: 7200
