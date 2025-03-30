@@ -1,6 +1,7 @@
 package org.sonso.bludceapi.controller
 
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.slf4j.LoggerFactory
 import org.sonso.bludceapi.dto.response.ReceiptItemResponse
 import org.sonso.bludceapi.service.ReceiptParserService
@@ -14,6 +15,10 @@ import org.springframework.web.multipart.MultipartFile
 
 @RestController
 @RequestMapping("/api/receipts")
+@Tag(
+    name = "Чеки",
+    description = "Контроллер для работы с чеками"
+)
 class ReceiptParserController(
     private val receiptParserService: ReceiptParserService,
 ) {
