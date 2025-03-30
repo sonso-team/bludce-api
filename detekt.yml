@@ -25,6 +25,8 @@ performance:
 style:
   MagicNumber:
     ignoreLocalVariableDeclaration: true
+    ignoreRanges: true
+    ignorePropertyDeclaration: true
   DataClassContainsFunctions:
     active: true
   UseEmptyCounterpart:

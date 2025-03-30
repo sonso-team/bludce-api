@@ -2,7 +2,7 @@ services:
   bludce-db:
     image: postgres:16.3
     container_name: bludce-db
-    hostname: bobr_db
+    hostname: bludce_db
     restart: always
     environment:
       POSTGRES_DB: "bludce"
@@ -16,7 +16,7 @@ services:
     ports:
       - "5700:5432"
 
-  bobr:
+  bludce-api:
     build:
       dockerfile: ./Dockerfile
       context: ./
@@ -25,6 +25,8 @@ services:
     container_name: bludce-api
     depends_on:
       - bludce-db
+    volumes:
+      - ./logs:/logs
     networks:
       - backend
     ports:
