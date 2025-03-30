@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.sonso.bludceapi.dto.User
 import org.sonso.bludceapi.dto.request.AuthenticationRequest
 import org.sonso.bludceapi.dto.request.RegistrationRequest
 import org.sonso.bludceapi.dto.request.SendCodeRequest
@@ -12,9 +13,7 @@ import org.sonso.bludceapi.dto.response.AuthenticationResponse
 import org.sonso.bludceapi.service.AuthenticationService
 import org.sonso.bludceapi.util.exception.AuthenticationException
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.MissingRequestCookieException
 import org.springframework.web.bind.annotation.CookieValue
-import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
@@ -30,15 +29,15 @@ import org.springframework.web.bind.annotation.RestController
     description = "Основной контроллер аутентификации"
 )
 class AuthenticationController(
-    private val authenticationService: AuthenticationService
+    private val authenticationService: AuthenticationService,
 ) {
-    private val log: Logger = LoggerFactory.getLogger(AuthenticationController::class.java)
+    private val log: Logger = LoggerFactory.getLogger(this::class.java)
 
     @PostMapping("/authorization")
     @Operation(summary = "Авторизация пользователя")
     fun authorization(
         @RequestBody request: AuthenticationRequest,
-        response: HttpServletResponse
+        response: HttpServletResponse,
     ): ResponseEntity<AuthenticationResponse> {
         log.info("Request to authorization")
         return ResponseEntity.ok(authenticationService.authorization(request, response))
@@ -47,7 +46,7 @@ class AuthenticationController(
     @GetMapping("/send-code")
     @Operation(summary = "Запрос кода на почту")
     fun sendCode(
-        @RequestBody request: SendCodeRequest
+        @RequestBody request: SendCodeRequest,
     ): ResponseEntity<Map<String, String>> {
         log.info("Request to sending password-code")
         return ResponseEntity.ok(authenticationService.sendCode(request))
@@ -66,7 +65,7 @@ class AuthenticationController(
     @Operation(summary = "Выход пользователя с сайта")
     fun logout(
         @CookieValue(value = "refreshToken") token: String,
-        response: HttpServletResponse
+        response: HttpServletResponse,
     ): ResponseEntity<Map<String, String>> {
         log.info("Request to logout")
         if (token.isEmpty()) throw AuthenticationException("Refresh токен пустой")
@@ -77,7 +76,7 @@ class AuthenticationController(
     @Operation(summary = "Обновление токена")
     fun refresh(
         @CookieValue(value = "refreshToken") token: String,
-        response: HttpServletResponse
+        response: HttpServletResponse,
     ): ResponseEntity<AuthenticationResponse> {
         log.info("Request to refresh")
         return ResponseEntity.ok(authenticationService.refresh(token, response))
@@ -86,31 +85,9 @@ class AuthenticationController(
     @GetMapping("/who-am-i")
     @Operation(description = "Полная инфа об аутентифицированном пользователе")
     fun whoAmI(
-        @RequestHeader(value = "Authorization") token: String
-    ): ResponseEntity<Map<String, String>> {
+        @RequestHeader(value = "Authorization") token: String,
+    ): ResponseEntity<User> {
         log.info("Request to WhoAmI")
-        return ResponseEntity.ok().body(mapOf("username" to authenticationService.whoAmI(token)))
-    }
-
-    // Перехватчики исключений
-    @ExceptionHandler
-    fun handleException(ex: MissingRequestCookieException): ResponseEntity<Map<String, String>> {
-        log.warn("MissingRequestCookieException: $ex")
-        return ResponseEntity.badRequest()
-            .body(mapOf("message" to "Рефреш токен отсутствует. Пожалуйста, повторите процедуру входа заново"))
-    }
-
-    @ExceptionHandler
-    fun handleException(ex: AuthenticationException): ResponseEntity<Map<String, String?>> {
-        log.warn("AuthorizationException: $ex")
-        return ResponseEntity.badRequest()
-            .body(mapOf("message" to ex.message))
-    }
-
-    @ExceptionHandler
-    fun handleException(ex: Exception): ResponseEntity<Map<String, String>> {
-        log.error("Exception: $ex")
-        log.debug(ex.stackTraceToString())
-        return ResponseEntity.badRequest().body(mapOf("message" to "${ex.message}"))
+        return ResponseEntity.ok().body(authenticationService.whoAmI(token))
     }
 }

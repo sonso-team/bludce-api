@@ -1,4 +1,4 @@
-package org.sonso.bludceapi.dto.response
+package org.sonso.bludceapi.dto.client
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
@@ -44,7 +44,7 @@ data class OcrServiceClientResponse(
         val errorMessage: String,
 
         @JsonProperty("ErrorDetails")
-        val errorDetails: String
+        val errorDetails: String,
     )
 
     data class OcrLineResponse(
@@ -58,7 +58,7 @@ data class OcrServiceClientResponse(
         val maxHeight: Double,
 
         @JsonProperty("MinTop")
-        val minTop: Double
+        val minTop: Double,
     )
 
     data class OcrWordResponse(
@@ -75,6 +75,6 @@ data class OcrServiceClientResponse(
         val height: Double,
 
         @JsonProperty("Width")
-        val width: Double
+        val width: Double,
     )
 }

@@ -20,31 +20,30 @@ class JwtAuthenticationFilter(
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
-        filterChain: FilterChain
+        filterChain: FilterChain,
     ) {
-        if (request.requestURI.startsWith("/api/auth") && request.requestURI != "/api/auth/who-am-i") {
-            filterChain.doFilter(request, response)
-            return
-        }
-
         try {
-            val token = request.getHeader("Authorization")
-            if (token == null || token.isEmpty()) {
+            if (request.requestURI.startsWith("/api/auth") && request.requestURI != "/api/auth/who-am-i") {
                 filterChain.doFilter(request, response)
                 return
             }
 
-            if (!token.startsWith("Bearer ")) {
+            val authHeader = request.getHeader("Authorization")
+
+            if (authHeader == null || authHeader.isEmpty()) {
+                filterChain.doFilter(request, response)
                 return
             }
+            if (!authHeader.startsWith("Bearer ")) return
 
-            val userEmail = jwtService.extractUsername(token)
+            val token = authHeader.substring(7)
+            val userEmail = jwtService.getUsername(token)
 
             if (userEmail.isNotEmpty() && SecurityContextHolder.getContext().authentication == null) {
                 val userDetails = userDetailsService.loadUserByUsername(userEmail)
 
                 if (jwtService.isTokenValid(token, userDetails)) {
-                    val authToken = UsernamePasswordAuthenticationToken(userEmail, null, userDetails.authorities)
+                    val authToken = UsernamePasswordAuthenticationToken(userDetails, token, userDetails.authorities)
                     authToken.details = WebAuthenticationDetailsSource().buildDetails(request)
                     SecurityContextHolder.getContext().authentication = authToken
                 } else return

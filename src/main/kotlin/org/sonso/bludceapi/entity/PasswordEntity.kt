@@ -25,5 +25,4 @@ data class PasswordEntity(
 
     @Column(name = "expire_date", nullable = false)
     val expireDate: Long = 0L,
-
 )

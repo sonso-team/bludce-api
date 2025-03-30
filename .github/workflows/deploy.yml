@@ -6,7 +6,7 @@ on:
 
 env:
   JAVA_VERSION: '21'
-  TARGET_DIR: /home/kinoko/bludce/bludce-api
+  TARGET_DIR: /home/kinoko/bludce/api
   BACKUP_DIR: /home/kinoko/backup/bludce
   JAR_DIR: /tmp/bludce
 

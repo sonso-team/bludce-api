@@ -2,16 +2,15 @@ package org.sonso.bludceapi.service
 
 import org.slf4j.LoggerFactory
 import org.sonso.bludceapi.client.OcrServiceClient
-import org.sonso.bludceapi.dto.ReceiptItemResponse
+import org.sonso.bludceapi.dto.response.ReceiptItemResponse
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
 
 @Service
 class ReceiptParserService(
-    private val orcServiceClient: OcrServiceClient
+    private val orcServiceClient: OcrServiceClient,
 ) {
-
-    private val log = LoggerFactory.getLogger(ReceiptParserService::class.java)
+    private val log = LoggerFactory.getLogger(this::class.java)
 
     fun getImageFromText(image: MultipartFile): List<ReceiptItemResponse> {
         log.info("Sending image to OCR service: ${image.originalFilename}, size: ${image.size} bytes")
@@ -28,12 +27,14 @@ class ReceiptParserService(
 
         val linesColumns: MutableList<List<String>> = mutableListOf()
         lines.forEach { line ->
-            val columns = line
-                .split("\t")
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
-
-            linesColumns.add(columns.takeIf { it.size >= 2 } ?: return@forEach)
+            linesColumns.add(
+                line
+                    .split("\t")
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .takeIf { it.size >= 2 }
+                    ?: return@forEach
+            )
         }
 
         linesColumns.forEach { columns ->

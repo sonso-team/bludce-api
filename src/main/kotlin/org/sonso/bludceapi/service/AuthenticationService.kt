@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.sonso.bludceapi.config.properties.AuthenticationProperties
+import org.sonso.bludceapi.dto.User
 import org.sonso.bludceapi.dto.request.AuthenticationRequest
 import org.sonso.bludceapi.dto.request.RegistrationRequest
 import org.sonso.bludceapi.dto.request.SendCodeRequest
@@ -27,7 +28,7 @@ class AuthenticationService(
     private val jwtService: JwtService,
     private val mailService: MailService,
     private val passwordsRepository: PasswordsRepository,
-    private val authenticationProperties: AuthenticationProperties
+    private val authenticationProperties: AuthenticationProperties,
 ) {
     private val log: Logger = LoggerFactory.getLogger(AuthenticationService::class.java)
 
@@ -61,8 +62,7 @@ class AuthenticationService(
     }
 
     private fun performLogin(userEntity: UserEntity, response: HttpServletResponse): AuthenticationResponse {
-        val userDetails = userEntity.toUser()
-        val tokens = jwtService.generateTokens(userDetails)
+        val tokens = jwtService.generateTokens(userEntity)
         setRefreshToken(response, tokens[1])
 
         log.debug("User {} has been authorized", userEntity.id)
@@ -71,7 +71,7 @@ class AuthenticationService(
         return AuthenticationResponse(
             message = "Авторизация прошла успешно",
             token = tokens[0],
-            user = userDetails
+            user = userEntity.toUser()
         )
     }
 
@@ -130,17 +130,16 @@ class AuthenticationService(
         return mapOf("message" to "Выход из аккаунта прошел успешно")
     }
 
-    fun refresh(userToken: String, response: HttpServletResponse): AuthenticationResponse {
-        if (userToken.isEmpty()) {
+    fun refresh(token: String, response: HttpServletResponse): AuthenticationResponse {
+        if (token.isEmpty()) {
             log.warn("Token is empty")
             throw AuthenticationException("Токен пуст")
         }
 
-        val userEntity = userRepository.findByPhoneNumber(jwtService.extractUsername(userToken))
+        val userEntity = userRepository.findByPhoneNumber(jwtService.getUsername(token.substring(7)))
             ?: throw UserNotFoundException("User not exist")
 
-        val userDetails = userEntity.toUser()
-        val tokens = jwtService.generateTokens(userDetails)
+        val tokens = jwtService.generateTokens(userEntity)
 
         setRefreshToken(response, tokens[1])
 
@@ -153,11 +152,11 @@ class AuthenticationService(
         )
     }
 
-    fun whoAmI(token: String): String {
-        val userEntity = userRepository.findByPhoneNumber(jwtService.extractUsername(token.substring(7)))
+    fun whoAmI(token: String): User {
+        val userEntity = userRepository.findByPhoneNumber(jwtService.getUsername(token.substring(7)))
             ?: throw UserNotFoundException("Пользователь не существует")
         log.info("WhoAmI for user ${userEntity.id} successful")
-        return userEntity.email
+        return userEntity.toUser()
     }
 
     fun setRefreshToken(response: HttpServletResponse, token: String) {
@@ -173,16 +172,12 @@ class AuthenticationService(
     }
 
     private fun validateCredentials(request: AuthenticationRequest) {
-        if (request.login.isEmpty() || request.password.isEmpty()) {
-            log.warn("Login or password fields is empty")
+        if (request.login.isEmpty() || request.password.isEmpty())
             throw AuthenticationException("Поля логин и/или пароль пустые")
-        }
     }
 
     private fun validateCredentials(request: RegistrationRequest) {
-        if (request.phoneNumber.isEmpty() || request.email.isEmpty() || request.name.isEmpty()) {
-            log.warn("Phone number or email fields is empty")
+        if (request.phoneNumber.isEmpty() || request.email.isEmpty() || request.name.isEmpty())
             throw AuthenticationException("Номер телефона и/или адрес электронной почты пустые")
-        }
     }
 }

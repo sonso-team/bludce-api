@@ -9,7 +9,5 @@ import org.springframework.context.annotation.Configuration
 class FeignMultipartSupportConfig {
 
     @Bean
-    fun feignEncoder(): Encoder {
-        return SpringFormEncoder()
-    }
+    fun feignEncoder(): Encoder = SpringFormEncoder()
 }
