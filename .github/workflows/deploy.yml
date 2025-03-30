@@ -44,71 +44,74 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Create backup
+      - name: Create backup of current deployment
         run: |
-          if [ -d "${{ env.TARGET_DIR }}" ]; then
-            sudo mkdir -p "${{ env.BACKUP_DIR }}"
-            sudo cp -r "${{ env.TARGET_DIR }}"/* "${{ env.BACKUP_DIR }}"
-            echo "✅ Backup успешно создан"
+          if [ -e "${{ env.TARGET_DIR }}" ]; then
+            sudo mkdir -p ${{ env.BACKUP_DIR }}
+            sudo cp -r ${{ env.TARGET_DIR }} ${{ env.BACKUP_DIR }}
+            echo "Backup created at ${{ env.BACKUP_DIR }}"
           else
-            echo "⚠️ Нет текущего деплоя, бекап не создавался"
+            echo "Деплойев еще не было. Бекапа не буит"
           fi
 
-      - name: Stop existing containers
+      - name: Stop and remove existing containers
         run: |
           if [ -f "${{ env.TARGET_DIR }}/docker-compose.yml" ]; then
             docker compose -f "${{ env.TARGET_DIR }}/docker-compose.yml" down
           fi
 
-      - name: Clean target dir
-        run: |
-          sudo rm -rf "${{ env.TARGET_DIR }}"
-          sudo mkdir -p "${{ env.TARGET_DIR }}"
+      - name: Clean target directory
+        run: sudo rm -rf ${{ env.TARGET_DIR }} && sudo mkdir -p ${{ env.TARGET_DIR }}
 
       - name: Copy project files
         run: |
-          sudo cp -r ./* "${{ env.TARGET_DIR }}"
-          sudo chown -R kinoko:kinoko "${{ env.TARGET_DIR }}"
+          sudo cp -r ./* ${{ env.TARGET_DIR }}
+          sudo chown -R kinoko:kinoko ${{ env.TARGET_DIR }}
 
-      - name: Download JAR artifacts
+      - name: Download built JARs
         uses: actions/download-artifact@v4
         with:
           name: app-jars
-          path: "${{ env.JAR_DIR }}"
+          path: ${{ env.JAR_DIR }}
 
-      - name: Move JARs to target
+      - name: Copy JAR to server
         run: |
-          sudo cp -r "${{ env.JAR_DIR }}"/*.jar "${{ env.TARGET_DIR }}"
-          sudo rm -rf "${{ env.JAR_DIR }}"
+          sudo cp -r ${{ env.JAR_DIR }}/* ${{ env.TARGET_DIR }}
+          sudo rm -r ${{ env.JAR_DIR }}
 
-      - name: Deploy via Docker Compose
+      - name: Build and deploy with Docker Compose
         run: |
-          docker compose -f "${{ env.TARGET_DIR }}/docker-compose.yml" up --build -d
-          sleep 30
-          if docker compose -f "${{ env.TARGET_DIR }}/docker-compose.yml" logs | grep -iq "ERROR"; then
-            echo "🚨 Ошибка в логах!"
-            docker compose -f "${{ env.TARGET_DIR }}/docker-compose.yml" logs
+          if [ -f "${{ env.TARGET_DIR }}/docker-compose.yml" ]; then
+            docker compose -f ${{ env.TARGET_DIR }}/docker-compose.yml rm -f
+          fi
+          docker compose -f ${{ env.TARGET_DIR }}/docker-compose.yml up --build -d
+          sleep 60
+          if docker compose -f ${{ env.TARGET_DIR }}/docker-compose.yml logs | grep -i "ERROR"; then
+            echo "Ошибка деплоя. В логах найдены ошибки"
+            docker compose -f ${{ env.TARGET_DIR }}/docker-compose.yml logs  # Показываем логи для отладки
             exit 1
           else
-            echo "✅ Деплой успешен, ошибок нет"
+            echo "Ошибок в логах не найдено. Деплой успешен"
           fi
 
-      - name: Cleanup backup after success
+      - name: Confirm deployment
         run: |
-          sudo rm -rf "${{ env.BACKUP_DIR }}"
-          echo "🧹 Очистка бекапа завершена"
+          sudo rm -rf ${{ env.BACKUP_DIR }}
+          echo "Деплой окончен"
 
       - name: Rollback on failure
         if: failure()
         run: |
-          echo "🔄 Выполняем откат..."
-          docker compose -f "${{ env.TARGET_DIR }}/docker-compose.yml" down || true
-          sudo rm -rf "${{ env.TARGET_DIR }}"
+          echo "Ошибка деплоя. Откат на предыдущую версию..."
+          if [ -f "${{ env.TARGET_DIR }}/docker-compose.yml" ]; then
+            docker compose -f ${{ env.TARGET_DIR }}/docker-compose.yml down
+          fi
+          sudo rm -rf ${{ env.TARGET_DIR }}
           if [ -d "${{ env.BACKUP_DIR }}" ]; then
-            sudo mv "${{ env.BACKUP_DIR }}" "${{ env.TARGET_DIR }}"
-            sudo chown -R kinoko:kinoko "${{ env.TARGET_DIR }}"
-            docker compose -f "${{ env.TARGET_DIR }}/docker-compose.yml" up -d
-            echo "✅ Откат успешен"
+            sudo mv ${{ env.BACKUP_DIR }} ${{ env.TARGET_DIR }}
+            sudo chown -R kinoko:kinoko ${{ env.TARGET_DIR }}
+            docker compose -f ${{ env.TARGET_DIR }}/docker-compose.yml up -d
+            echo "Откат на предыдущую версию успешен"
           else
-            echo "⚠️ Откат невозможен, нет бекапа"
+            echo "Бекап не найден. Отката не буит"
           fi
