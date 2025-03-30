@@ -9,8 +9,8 @@ spring:
   datasource:
     username: bludce
     password: bludce
-    url: jdbc:postgresql://bludce_db:5432/bludce  # docker-compose
-#    url: jdbc:postgresql://localhost:5700/bludce   # idea
+#    url: jdbc:postgresql://bludce_db:5432/bludce  # docker-compose
+    url: jdbc:postgresql://localhost:5700/bludce   # idea
     driver-class-name: org.postgresql.Driver
   mail:
     host: smtp.gmail.com
