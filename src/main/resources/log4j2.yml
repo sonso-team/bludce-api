@@ -37,7 +37,7 @@ Configuration:
       name: CONSOLE_LOG
       target: SYSTEM_OUT
       PatternLayout:
-        pattern: "%clr{%d{yyyy-MM-dd HH:mm:ss.SSS}}{faint} %clr{%5p} %clr{${sys:PID}}{magenta} %clr{%-40.40c{1.}}{cyan} %clr{:}{faint} %m%n%xwEx"
+        pattern: "%clr{%d{yyyy-MM-dd HH:mm:ss.SSS}}{faint} %highlight{[%5p]} %clr{${sys:PID}}{magenta} %clr{%-40.40c{1.}}{cyan} %clr{:}{faint} %m%n%xwEx"
 
   Loggers:
     Root:
