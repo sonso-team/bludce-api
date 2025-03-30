@@ -1,8 +1,7 @@
 name: Блюдце API
 
 on:
-  pull_request:
-    branches: ["master", "develop"]
+  push: {}            # Запуск на каждый коммит во всех ветках
 
 env:
   JAVA_VERSION: '21'
@@ -31,14 +30,14 @@ jobs:
         run: ./gradlew clean build
 
       - name: Upload artifacts
-        if: github.event.pull_request.merged == true && (github.event.pull_request.base.ref == 'develop' || github.event.pull_request.base.ref == 'master')
+        if: github.ref == 'refs/heads/master'
         uses: actions/upload-artifact@v4
         with:
           name: app-jars
           path: '**/build/libs/*.jar'
 
   deploy:
-    if: github.event.pull_request.merged == true && github.base_ref == 'master'
+    if: github.ref == 'refs/heads/master'
     runs-on: self-hosted
     needs: build
     steps:
