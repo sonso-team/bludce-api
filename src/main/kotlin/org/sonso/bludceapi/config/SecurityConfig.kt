@@ -28,6 +28,7 @@ class SecurityConfig(
                 authorizationManagerRequestMatcherRegistry
                     .requestMatchers(
                         "/api/auth/who-am-i",
+                        "/api/receipts",
                     )
                     .authenticated()
                     .anyRequest()

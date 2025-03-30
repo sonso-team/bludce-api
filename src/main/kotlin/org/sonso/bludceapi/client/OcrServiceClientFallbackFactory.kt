@@ -1,7 +1,7 @@
 package org.sonso.bludceapi.client
 
 import org.slf4j.LoggerFactory
-import org.sonso.bludceapi.dto.response.OcrServiceClientResponse
+import org.sonso.bludceapi.dto.client.OcrServiceClientResponse
 import org.springframework.cloud.openfeign.FallbackFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.bind.annotation.RequestPart
@@ -11,7 +11,7 @@ import org.springframework.web.multipart.MultipartFile
 class OcrServiceClientFallbackFactory : FallbackFactory<OcrServiceClient> {
     override fun create(cause: Throwable): OcrServiceClient {
         return object : OcrServiceClient {
-            private val log = LoggerFactory.getLogger(OcrServiceClientFallbackFactory::class.java)
+            private val log = LoggerFactory.getLogger(this::class.java)
 
             override fun getTextFromImage(
                 @RequestPart(value = "file") file: MultipartFile,

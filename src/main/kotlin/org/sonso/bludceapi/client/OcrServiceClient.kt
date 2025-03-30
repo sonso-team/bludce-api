@@ -1,7 +1,7 @@
 package org.sonso.bludceapi.client
 
 import org.sonso.bludceapi.config.FeignMultipartSupportConfig
-import org.sonso.bludceapi.dto.response.OcrServiceClientResponse
+import org.sonso.bludceapi.dto.client.OcrServiceClientResponse
 import org.springframework.cloud.openfeign.FeignClient
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestPart

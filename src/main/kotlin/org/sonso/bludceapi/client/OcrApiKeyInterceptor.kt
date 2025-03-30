@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component
 @Component
 class OcrApiKeyInterceptor(
     @Value("\${app.ocr.api-key}")
-    private val apiKey: String
+    private val apiKey: String,
 ) : RequestInterceptor {
 
     override fun apply(template: RequestTemplate) {
