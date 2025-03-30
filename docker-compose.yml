@@ -26,7 +26,8 @@ services:
     depends_on:
       - bludce-db
     volumes:
-      - ./logs:/logs
+      - /home/kinoko/logs/bludce-api:/logs
+#      - ./logs/bludce-api:/logs                                # Для отладки на windows машине
     networks:
       - backend
     ports:
