@@ -16,12 +16,14 @@ object CheckTypeLogin {
     fun getUserByIdentifyingField(identifierField: String, userRepository: UserRepository) =
         when {
             isPhoneNumber(identifierField) -> {
-                log.debug("Идентификация пользователя по телефонному номеру")
+                log.info("Идентификация пользователя по телефонному номеру")
+                log.debug("Идентификация пользователя по телефонному номеру: $identifierField")
                 userRepository.findByPhoneNumber(identifierField)
                     ?: throw UserNotFoundException("Пользователь не найден")
             }
             isEmail(identifierField) -> {
-                log.debug("Идентификация пользователя по email")
+                log.info("Идентификация пользователя по email")
+                log.debug("Идентификация пользователя по email: $identifierField")
                 userRepository.findByEmail(identifierField)
                     ?: throw UserNotFoundException("Пользователь не найден")
             }
