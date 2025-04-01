@@ -16,21 +16,21 @@ object CheckTypeLogin {
     fun getUserByIdentifyingField(identifierField: String, userRepository: UserRepository) =
         when {
             isPhoneNumber(identifierField) -> {
-                log.info("Идентификация пользователя по телефонному номеру: $identifierField")
+                log.debug("Идентификация пользователя по телефонному номеру")
                 userRepository.findByPhoneNumber(identifierField)
                     ?: throw UserNotFoundException("Пользователь не найден")
             }
             isEmail(identifierField) -> {
-                log.info("Идентификация пользователя по email: $identifierField")
+                log.debug("Идентификация пользователя по email")
                 userRepository.findByEmail(identifierField)
                     ?: throw UserNotFoundException("Пользователь не найден")
             }
             else -> {
                 log.warn("Введен неверный формат для идентификации пользователя (не телефонный номер и не почта)")
-                null
+                throw IllegalArgumentException(
+                    "Введен неверный формат для идентификации пользователя" +
+                        " (не телефон, не почта)"
+                )
             }
-        } ?: throw IllegalArgumentException(
-            "Введен неверный формат для идентификации пользователя " +
-                "(не телефон, не почта)"
-        )
+        }
 }
