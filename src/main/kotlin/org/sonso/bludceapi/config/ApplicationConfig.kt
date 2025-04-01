@@ -1,7 +1,7 @@
 package org.sonso.bludceapi.config
 
 import org.sonso.bludceapi.repository.UserRepository
-import org.sonso.bludceapi.util.exception.UserNotFoundException
+import org.sonso.bludceapi.util.CheckTypeLogin
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.authentication.AuthenticationProvider
@@ -15,8 +15,8 @@ class ApplicationConfig(
 ) {
 
     @Bean
-    fun userDetailsService() = UserDetailsService { phoneNumber: String ->
-        userRepository.findByPhoneNumber(phoneNumber) ?: throw UserNotFoundException("Пользователь не существует")
+    fun userDetailsService() = UserDetailsService { login: String ->
+        CheckTypeLogin.getUserByIdentifyingField(login, userRepository)
     }
 
     @Bean
