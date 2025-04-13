@@ -12,6 +12,14 @@ spring:
     url: jdbc:postgresql://bludce_db:5432/bludce  # docker-compose
 #    url: jdbc:postgresql://localhost:5700/bludce   # idea
     driver-class-name: org.postgresql.Driver
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+        generate_statistics: true
   mail:
     host: smtp.gmail.com
     port: 587
@@ -36,6 +44,8 @@ app:
   ocr:
     api-key: K88899112888957
     url: https://api.ocr.space
+  web-socket:
+    base-url: "https://bank.uwu-devcrew.ru"
 
 server:
   port: 7200

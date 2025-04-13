@@ -89,6 +89,9 @@ class AuthenticationService(
     @Transactional
     fun registration(request: RegistrationRequest): AuthenticationResponse {
         validateCredentials(request)
+        require(CheckTypeLogin.isPhoneNumber(request.phoneNumber)) {
+            "Номер телефона указан неверно"
+        }
 
         val phoneNumbers = userRepository.findAllPhoneNumbers()
         val emails = userRepository.findAllEmails()

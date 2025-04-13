@@ -27,6 +27,9 @@ data class UserEntity(
 
     @OneToMany(mappedBy = "userEntity")
     val passwords: List<PasswordEntity> = listOf(),
+
+    @OneToMany(mappedBy = "initiator")
+    val receipts: List<ReceiptEntity> = listOf()
 ) : UserDetails {
     override fun getUsername() = this.phoneNumber
     override fun getPassword() = this.email
