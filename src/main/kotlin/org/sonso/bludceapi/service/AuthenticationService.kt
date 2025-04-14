@@ -80,7 +80,7 @@ class AuthenticationService(
 
     @Transactional
     fun sendCode(request: SendCodeRequest): Map<String, String> {
-        val userEntity = CheckTypeLogin.getUserByIdentifyingField(request.contact, userRepository)
+        val userEntity = CheckTypeLogin.getUserByIdentifyingField(request.login, userRepository)
 
         mailService.sendPassCode(userEntity)
         return mapOf("message" to "Код успешно выслан на почту ${userEntity.email}")
