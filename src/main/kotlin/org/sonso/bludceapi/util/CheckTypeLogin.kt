@@ -11,7 +11,7 @@ object CheckTypeLogin {
     private val log: Logger = LoggerFactory.getLogger(AuthenticationService::class.java)
 
     private fun isEmail(login: String) = login.matches(Regex("""^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,6}$"""))
-    private fun isPhoneNumber(login: String) = login.matches(Regex("^7\\d{10}$"))
+    fun isPhoneNumber(login: String) = login.matches(Regex("^7\\d{10}$"))
 
     fun getUserByIdentifyingField(identifierField: String, userRepository: UserRepository) =
         when {

@@ -40,6 +40,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
     implementation("org.springframework.boot:spring-boot-starter-web")
 
+    // Web Socket
+    implementation("org.springframework.boot:spring-boot-starter-websocket")
+
     // Mail
     implementation("org.springframework.boot:spring-boot-starter-mail")
 

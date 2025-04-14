@@ -181,5 +181,9 @@ class AuthenticationService(
     private fun validateCredentials(request: RegistrationRequest) {
         if (request.phoneNumber.isEmpty() || request.email.isEmpty() || request.name.isEmpty())
             throw AuthenticationException("Номер телефона и/или адрес электронной почты пустые")
+
+        require(CheckTypeLogin.isPhoneNumber(request.phoneNumber)) {
+            "Номер телефона указан неверно"
+        }
     }
 }
