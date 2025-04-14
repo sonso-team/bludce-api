@@ -26,6 +26,7 @@ spring:
             enable: true
 
 app:
+  host: "https://bank.uwu-devcrew.ru"
   auth:
     admin-code: 123123
     password-life-time: 120000

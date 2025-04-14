@@ -2,7 +2,7 @@ package org.sonso.bludceapi.service
 
 import org.slf4j.LoggerFactory
 import org.sonso.bludceapi.client.OcrServiceClient
-import org.sonso.bludceapi.dto.response.ReceiptItemResponse
+import org.sonso.bludceapi.dto.ReceiptPosition
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
 
@@ -12,7 +12,7 @@ class ReceiptParserService(
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
 
-    fun getImageFromText(image: MultipartFile): List<ReceiptItemResponse> {
+    fun getImageFromText(image: MultipartFile): List<ReceiptPosition> {
         log.info("Sending image to OCR service: ${image.originalFilename}, size: ${image.size} bytes")
 
         val response = orcServiceClient.getTextFromImage(image)
@@ -23,7 +23,7 @@ class ReceiptParserService(
             .map { it.trim() }
             .filter { it.isNotEmpty() }
 
-        val items = mutableListOf<ReceiptItemResponse>()
+        val items = mutableListOf<ReceiptPosition>()
 
         val linesColumns: MutableList<List<String>> = mutableListOf()
         lines.forEach { line ->
@@ -40,7 +40,7 @@ class ReceiptParserService(
         linesColumns.forEach { columns ->
             val priceStr = columns.last()
             val price = try {
-                priceStr.replace(',', '.').toDouble()
+                priceStr.replace(',', '.').toBigDecimal()
             } catch (e: NumberFormatException) {
                 log.debug("Invalid price $priceStr")
                 return@forEach
@@ -49,11 +49,11 @@ class ReceiptParserService(
             val quantityStr = columns[columns.size - 2].takeIf { columns.size > 2 }
             val quantity = quantityStr?.let {
                 try {
-                    it.replace(',', '.').toDouble()
+                    it.replace(',', '.').toInt()
                 } catch (e: NumberFormatException) {
                     null
                 }
-            } ?: 1.0
+            } ?: 1
 
             val name = if (quantityStr != null && quantityStr == columns[columns.size - 2]) {
                 columns.subList(0, columns.size - 2).joinToString(" ")
@@ -62,7 +62,7 @@ class ReceiptParserService(
             }
 
             items.add(
-                ReceiptItemResponse(
+                ReceiptPosition(
                     name = name,
                     quantity = quantity,
                     price = price

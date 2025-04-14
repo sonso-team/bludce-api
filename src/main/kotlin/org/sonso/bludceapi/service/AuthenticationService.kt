@@ -13,6 +13,7 @@ import org.sonso.bludceapi.dto.response.AuthenticationResponse
 import org.sonso.bludceapi.entity.UserEntity
 import org.sonso.bludceapi.repository.PasswordsRepository
 import org.sonso.bludceapi.repository.UserRepository
+import org.sonso.bludceapi.util.CheckTypeLogin
 import org.sonso.bludceapi.util.exception.AuthenticationException
 import org.sonso.bludceapi.util.exception.UserNotFoundException
 import org.sonso.bludceapi.util.toUser
@@ -34,10 +35,12 @@ class AuthenticationService(
 
     @Transactional
     fun authorization(request: AuthenticationRequest, response: HttpServletResponse): AuthenticationResponse {
+        log.info("start authorization in service")
+
         validateCredentials(request)
 
-        val userEntity =
-            userRepository.findByPhoneNumber(request.login) ?: throw UserNotFoundException("Пользователь не существует")
+        val userEntity = CheckTypeLogin.getUserByIdentifyingField(request.login, userRepository)
+
         val passwordEntities = passwordsRepository.findPasswordEntitiesByUserEntity(userEntity)
         val passwords = passwordsRepository.findPasswordEntitiesByUserEntity(userEntity).map { it.passcode }
 
@@ -77,8 +80,7 @@ class AuthenticationService(
 
     @Transactional
     fun sendCode(request: SendCodeRequest): Map<String, String> {
-        val userEntity = userRepository.findByPhoneNumber(request.phoneNumber)
-            ?: throw UserNotFoundException("Пользователь не найден")
+        val userEntity = CheckTypeLogin.getUserByIdentifyingField(request.login, userRepository)
 
         mailService.sendPassCode(userEntity)
         return mapOf("message" to "Код успешно выслан на почту ${userEntity.email}")
@@ -179,5 +181,9 @@ class AuthenticationService(
     private fun validateCredentials(request: RegistrationRequest) {
         if (request.phoneNumber.isEmpty() || request.email.isEmpty() || request.name.isEmpty())
             throw AuthenticationException("Номер телефона и/или адрес электронной почты пустые")
+
+        require(CheckTypeLogin.isPhoneNumber(request.phoneNumber)) {
+            "Номер телефона указан неверно"
+        }
     }
 }

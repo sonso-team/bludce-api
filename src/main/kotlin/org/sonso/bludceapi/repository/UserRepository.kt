@@ -10,6 +10,8 @@ import java.util.UUID
 interface UserRepository : CrudRepository<UserEntity, UUID> {
     fun findByPhoneNumber(phoneNumber: String): UserEntity?
 
+    fun findByEmail(email: String): UserEntity?
+
     @Query("select u.phoneNumber from UserEntity u")
     fun findAllPhoneNumbers(): List<String>
 

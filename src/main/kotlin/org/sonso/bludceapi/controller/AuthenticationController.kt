@@ -43,7 +43,7 @@ class AuthenticationController(
         return ResponseEntity.ok(authenticationService.authorization(request, response))
     }
 
-    @GetMapping("/send-code")
+    @PostMapping("/send-code")
     @Operation(summary = "Запрос кода на почту")
     fun sendCode(
         @RequestBody request: SendCodeRequest,
