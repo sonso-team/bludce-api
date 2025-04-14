@@ -8,7 +8,7 @@ import org.sonso.bludceapi.entity.ReceiptEntity
 import org.sonso.bludceapi.entity.UserEntity
 import org.sonso.bludceapi.repository.ReceiptPositionRepository
 import org.sonso.bludceapi.repository.ReceiptRepository
-import org.sonso.bludceapi.util.toReceiptPositionEntityForSave
+import org.sonso.bludceapi.util.toReceiptPositionEntity
 import org.sonso.bludceapi.util.toReceiptPositionResponse
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -41,7 +41,7 @@ class ReceiptPositionService(
         val receipt = receiptRepository.save(ReceiptEntity().apply { initiator = currentUser })
 
         var receiptPositions = request
-            .map { it.toReceiptPositionEntityForSave(receipt) }
+            .map { it.toReceiptPositionEntity(receipt) }
 
         val saveReceiptPosition = receiptPositionRepository.saveAll(receiptPositions)
 

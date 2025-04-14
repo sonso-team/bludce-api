@@ -1,6 +1,8 @@
 package org.sonso.bludceapi.service
 
 import org.slf4j.LoggerFactory
+import org.sonso.bludceapi.config.properties.ReceiptType
+import org.sonso.bludceapi.config.properties.TipsType
 import org.sonso.bludceapi.dto.request.ReceiptUpdateRequest
 import org.sonso.bludceapi.dto.response.ReceiptResponse
 import org.sonso.bludceapi.entity.UserEntity
@@ -9,13 +11,14 @@ import org.sonso.bludceapi.util.toReceiptResponse
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 import java.util.*
 
 @Service
 class ReceiptService(
     private val receiptRepository: ReceiptRepository
 ) {
-    @Value("\${app.web-socket.base-url}")
+    @Value("\${app.host}")
     lateinit var baseUrl: String
 
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -35,6 +38,8 @@ class ReceiptService(
 
     @Transactional
     fun update(request: ReceiptUpdateRequest, currentUser: UserEntity): Map<String, String> {
+        validateUpdate(request)
+
         val receipt = receiptRepository.findById(request.receiptId)
             .orElseThrow { NoSuchElementException("Receipt with ID ${request.receiptId} not found") }
 
@@ -45,9 +50,10 @@ class ReceiptService(
         receipt.apply {
             initiator = currentUser
             receiptType = request.receiptType
-            request.tipsType?.let { tipsType = it }
-            request.personCount?.let { personCount = it }
-            request.tipsPercent?.let { tipsPercent = it }
+            tipsType = request.tipsType
+            personCount = request.personCount.takeIf { receiptType == ReceiptType.EVENLY }
+            tipsPercent = request.tipsPercent.takeIf { isTipsPercentAllowed(tipsType) }
+            updatedAt = LocalDateTime.now()
         }
 
         receiptRepository.save(receipt)
@@ -68,4 +74,31 @@ class ReceiptService(
         log.info("Deleting Receipt successful")
         return existingReceipt.toReceiptResponse()
     }
+
+    private fun validateUpdate(updateRequest: ReceiptUpdateRequest) {
+        val tipsType = updateRequest.tipsType
+        val tipsPercent = updateRequest.tipsPercent
+
+        val isTipsMismatch =
+            (tipsType in listOf(TipsType.EVENLY, TipsType.PROPORTIONALLY) && (tipsPercent?.let { it > 0 } != true)) ||
+                (tipsType in listOf(TipsType.NONE, TipsType.FOR_KICKS) && (tipsPercent?.let { it > 0 } == true))
+
+        require(!isTipsMismatch) {
+            "Некорректные данные: тип чаевых не соответствует заданному проценту"
+        }
+
+        val receiptType = updateRequest.receiptType
+        val personCount = updateRequest.personCount
+
+        val isPersonMismatch =
+            (receiptType == ReceiptType.EVENLY && (personCount?.let { it > 0 } != true)) ||
+                (receiptType == ReceiptType.PROPORTIONALLY && (personCount?.let { it > 0 } == true))
+
+        require(!isPersonMismatch) {
+            "Некорректные данные: тип чека не соответствует заданному количеству персон"
+        }
+    }
+
+    fun isTipsPercentAllowed(tipsType: TipsType): Boolean =
+        tipsType == TipsType.EVENLY || tipsType == TipsType.PROPORTIONALLY
 }

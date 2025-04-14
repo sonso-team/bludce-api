@@ -1,4 +1,3 @@
-
 package org.sonso.bludceapi.service
 
 import jakarta.transaction.Transactional
@@ -14,7 +13,7 @@ import org.springframework.stereotype.Service
 class MailService(
     private val passwordsRepository: PasswordsRepository,
     private val authenticationProperties: AuthenticationProperties,
-    val emailSender: EmailSender
+    private val emailSender: EmailSender
 ) {
     private val log: Logger = LoggerFactory.getLogger(this::class.java)
 

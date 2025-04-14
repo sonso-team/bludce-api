@@ -12,6 +12,7 @@ import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import org.sonso.bludceapi.config.properties.ReceiptType
 import org.sonso.bludceapi.config.properties.TipsType
+import java.time.LocalDateTime
 import java.util.UUID
 
 @Entity
@@ -24,17 +25,23 @@ class ReceiptEntity {
 
     @Column(name = "receipt_type", nullable = false)
     @Enumerated(EnumType.STRING)
-    var receiptType: ReceiptType = ReceiptType.PROPORTIONALLY
+    var receiptType: ReceiptType = ReceiptType.EVENLY
 
-    @Column(name = "tips_type")
+    @Column(name = "tips_type", nullable = false)
     @Enumerated(EnumType.STRING)
-    var tipsType: TipsType? = null
+    var tipsType: TipsType = TipsType.NONE
 
     @Column(name = "tips_percent")
     var tipsPercent: Int? = null
 
     @Column(name = "person_count")
     var personCount: Int? = null
+
+    @Column(name = "created_at", nullable = false)
+    var createdAt: LocalDateTime = LocalDateTime.now()
+
+    @Column(name = "updated_at")
+    var updatedAt: LocalDateTime? = null
 
     @ManyToOne
     @JoinColumn(name = "initiator_id", referencedColumnName = "id", nullable = false)
