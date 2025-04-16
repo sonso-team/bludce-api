@@ -21,7 +21,7 @@ class JwtService(
 
     // Генератор токенов
     fun generateTokens(userDetails: UserEntity): ArrayList<String> {
-        log.info("Token generating is began")
+        log.info("Начата генерация токенов")
         val tokens = ArrayList<String>()
 
         tokens.add(generateAccessToken(userDetails))

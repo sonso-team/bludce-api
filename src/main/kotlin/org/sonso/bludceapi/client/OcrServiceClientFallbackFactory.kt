@@ -19,10 +19,10 @@ class OcrServiceClientFallbackFactory : FallbackFactory<OcrServiceClient> {
                 @RequestPart(value = "isTable") isTable: String,
                 @RequestPart(value = "OCREngine") oCREngine: String
             ): OcrServiceClientResponse {
-                log.error("Fallback: OcrService is down. Returning fallback response.", cause)
+                log.error("Fallback: OCR сервис не работает. Возвращаем резервный ответ.", cause)
                 throw RuntimeException(
-                    "Fallback: OcrService is temporarily unavailable." +
-                        " Please try again later."
+                    "Fallback: OCR сервис временное недоступен." +
+                        " Пожалуйста повторите позже."
                 )
             }
         }

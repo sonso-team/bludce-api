@@ -22,21 +22,21 @@ class ReceiptPositionService(
     private val log = LoggerFactory.getLogger(this::class.java)
 
     fun getById(id: UUID): ReceiptPositionResponse {
-        log.debug("Getting ReceiptPosition by id: $id")
+        log.debug("Получение ReceiptPosition с id: $id")
         return receiptPositionRepository.findById(id)
-            .orElseThrow { NoSuchElementException("ReceiptPosition with ID $id not found") }
+            .orElseThrow { NoSuchElementException("ReceiptPosition с id $id не найдено") }
             .toReceiptPositionResponse()
     }
 
     fun getAll(): List<ReceiptPositionResponse> {
-        log.info("Request to get all ReceiptPosition")
+        log.info("Запрос на получение всех ReceiptPosition")
         return receiptPositionRepository.findAll()
             .map { it.toReceiptPositionResponse() }
     }
 
     @Transactional
     fun saveAll(request: List<ReceiptPosition>, currentUser: UserEntity): ReceiptPositionSaveResponse {
-        log.info("Saving ReceiptPositions")
+        log.info("Сохранение ReceiptPosition начато")
 
         val receipt = receiptRepository.save(ReceiptEntity().apply { initiator = currentUser })
 
@@ -45,23 +45,23 @@ class ReceiptPositionService(
 
         val saveReceiptPosition = receiptPositionRepository.saveAll(receiptPositions)
 
-        log.info("Saved ReceiptPositions successful")
-        log.debug("Saved ReceiptPositions: $saveReceiptPosition")
+        log.info("Сохранение ReceiptPosition прошло успешно")
+        log.debug("Сохранение ReceiptPosition: $saveReceiptPosition")
 
         return ReceiptPositionSaveResponse(receipt.id)
     }
 
     @Transactional
     fun delete(id: UUID): ReceiptPositionResponse {
-        log.info("Deleting ReceiptPosition")
-        log.debug("Deleting ReceiptPosition with id: $id")
+        log.info("Удаление ReceiptPosition начато")
+        log.debug("Удаление ReceiptPosition с id: $id начато")
 
         val existingReceiptPosition = receiptPositionRepository.findById(id)
-            .orElseThrow { NoSuchElementException("ReceiptPosition with id: $id not found") }
+            .orElseThrow { NoSuchElementException("ReceiptPosition с id: $id не найдено") }
 
         receiptPositionRepository.delete(existingReceiptPosition)
 
-        log.info("Deleting ReceiptPosition successful")
+        log.info("Удаление ReceiptPosition прошло успешно")
         return existingReceiptPosition.toReceiptPositionResponse()
     }
 }

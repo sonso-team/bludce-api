@@ -13,7 +13,7 @@ class ReceiptParserService(
     private val log = LoggerFactory.getLogger(this::class.java)
 
     fun getImageFromText(image: MultipartFile): List<ReceiptPosition> {
-        log.info("Sending image to OCR service: ${image.originalFilename}, size: ${image.size} bytes")
+        log.info("Отправка изображения в OCR сервис: ${image.originalFilename}, размер: ${image.size} байт")
 
         val response = orcServiceClient.getTextFromImage(image)
         val parsedText = response.parsedResults.firstOrNull()?.parsedText.orEmpty()
@@ -42,7 +42,7 @@ class ReceiptParserService(
             val price = try {
                 priceStr.replace(',', '.').toBigDecimal()
             } catch (e: NumberFormatException) {
-                log.debug("Invalid price $priceStr")
+                log.debug("Некорректная цена $priceStr")
                 return@forEach
             }
 
@@ -70,7 +70,7 @@ class ReceiptParserService(
             )
         }
 
-        log.info("Extracted ${items.size} item(s) from parsed text")
+        log.info("Извлечено ${items.size} элементов из проанализированного текста")
         return items
     }
 }

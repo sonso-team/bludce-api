@@ -36,17 +36,24 @@ class ReceiptController(
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
 
+    @GetMapping("/history")
+    @Operation(summary = "Получение всех чеков по id пользователя")
+    fun getAllByInitiator(@AuthenticationPrincipal user: UserEntity): ResponseEntity<List<ReceiptResponse>?> {
+        log.info("Запрос на получение всех чеков пользователя по id")
+        return ResponseEntity.ok(receiptService.getAllByInitiatorId(user.id))
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Получение чека по id")
     fun getReceipt(@PathVariable id: UUID): ResponseEntity<ReceiptResponse> {
-        log.info("Request Receipt by id: $id")
+        log.info("Запрос на получение чека по id: $id")
         return ResponseEntity.ok(receiptService.getById(id))
     }
 
     @GetMapping
     @Operation(summary = "Получение всех чеков")
     fun getAll(): ResponseEntity<List<ReceiptResponse>> {
-        log.info("Request get all Receipts")
+        log.info("Запрос на получение всех чеков")
         return ResponseEntity.ok(receiptService.getAll())
     }
 
@@ -55,7 +62,7 @@ class ReceiptController(
     fun calculate(
         @RequestParam("file") file: MultipartFile
     ): ResponseEntity<List<ReceiptPosition>> {
-        log.info("File received: ${file.originalFilename}, size: ${file.size} bytes")
+        log.info("Файл чека: ${file.originalFilename}, размер: ${file.size} байт")
         return ResponseEntity(receiptParserService.getImageFromText(file), HttpStatus.OK)
     }
 
@@ -65,14 +72,14 @@ class ReceiptController(
         @RequestBody request: ReceiptUpdateRequest,
         @AuthenticationPrincipal currentUser: UserEntity
     ): ResponseEntity<Map<String, String>> {
-        log.info("Request save Receipts")
+        log.info("Запрос на сохранение чека")
         return ResponseEntity.ok(receiptService.update(request, currentUser))
     }
 
     @DeleteMapping("/delete")
     @Operation(summary = "Удаление чека по id")
     fun delete(@RequestParam id: UUID): ResponseEntity<ReceiptResponse> {
-        log.info("Request delete Receipt")
+        log.info("Запрос на удаление чека по id: $id")
         return ResponseEntity.ok(receiptService.delete(id))
     }
 }

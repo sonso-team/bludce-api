@@ -6,4 +6,6 @@ import org.springframework.stereotype.Repository
 import java.util.*
 
 @Repository
-interface ReceiptRepository : CrudRepository<ReceiptEntity, UUID>
+interface ReceiptRepository : CrudRepository<ReceiptEntity, UUID> {
+    fun findByInitiatorId(initiatorId: UUID): List<ReceiptEntity>?
+}

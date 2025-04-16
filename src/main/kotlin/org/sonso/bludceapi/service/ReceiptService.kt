@@ -23,15 +23,21 @@ class ReceiptService(
 
     private val log = LoggerFactory.getLogger(this::class.java)
 
+    fun getAllByInitiatorId(initiatorId: UUID): List<ReceiptResponse>? {
+        log.debug("Запрос на получение чека по id инициатора: $initiatorId")
+        return receiptRepository.findByInitiatorId(initiatorId)
+            ?.map { it.toReceiptResponse() }
+    }
+
     fun getById(id: UUID): ReceiptResponse {
-        log.debug("Request to get Receipt by id: $id")
+        log.debug("Запрос на получение чека по id: $id")
         return receiptRepository.findById(id)
-            .orElseThrow { NoSuchElementException("Receipt with ID $id not found") }
+            .orElseThrow { NoSuchElementException("Чек с id $id не найден") }
             .toReceiptResponse()
     }
 
     fun getAll(): List<ReceiptResponse> {
-        log.info("Request to get all Receipt")
+        log.info("Запрос на получение всех чеков")
         return receiptRepository.findAll()
             .map { it.toReceiptResponse() }
     }
@@ -41,7 +47,7 @@ class ReceiptService(
         validateUpdate(request)
 
         val receipt = receiptRepository.findById(request.receiptId)
-            .orElseThrow { NoSuchElementException("Receipt with ID ${request.receiptId} not found") }
+            .orElseThrow { NoSuchElementException("Чек с ID ${request.receiptId} не найден") }
 
         require(currentUser.id == receipt.initiator.id) {
             "Ошибка, нельзя изменять не свой чек"
@@ -63,15 +69,15 @@ class ReceiptService(
 
     @Transactional
     fun delete(id: UUID): ReceiptResponse {
-        log.info("Deleting Receipt")
-        log.debug("Deleting Receipt position with id: $id")
+        log.info("Удаление чека начато")
+        log.debug("Удаление чека с id: $id начато")
 
         val existingReceipt = receiptRepository.findById(id)
-            .orElseThrow { NoSuchElementException("Receipt with id: $id not found") }
+            .orElseThrow { NoSuchElementException("Чек с id: $id не найден") }
 
         receiptRepository.delete(existingReceipt)
 
-        log.info("Deleting Receipt successful")
+        log.info("Удаление чека прошло успешно")
         return existingReceipt.toReceiptResponse()
     }
 

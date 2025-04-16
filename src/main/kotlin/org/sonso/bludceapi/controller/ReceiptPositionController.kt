@@ -10,13 +10,10 @@ import org.sonso.bludceapi.entity.UserEntity
 import org.sonso.bludceapi.service.ReceiptPositionService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.util.*
 
@@ -31,17 +28,10 @@ class ReceiptPositionController(
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
 
-    @GetMapping("/{id}")
-    @Operation(summary = "Получение позиции в чеке по id")
-    fun getReceiptPosition(@PathVariable id: UUID): ResponseEntity<ReceiptPositionResponse> {
-        log.info("Request ReceiptsPosition by id: $id")
-        return ResponseEntity.ok(receiptPositionService.getById(id))
-    }
-
     @GetMapping
-    @Operation(summary = "Получение всех позиций в чеке")
+    @Operation(summary = "Получение позиций из всех чеков")
     fun getAll(): ResponseEntity<List<ReceiptPositionResponse>> {
-        log.info("Request get all ReceiptPosition")
+        log.info("Запрос на получение позиций из всех чеков")
         return ResponseEntity.ok(receiptPositionService.getAll())
     }
 
@@ -51,14 +41,7 @@ class ReceiptPositionController(
         @RequestBody request: List<ReceiptPosition>,
         @AuthenticationPrincipal currentUser: UserEntity
     ): ResponseEntity<ReceiptPositionSaveResponse> {
-        log.info("Request save ReceiptPosition")
+        log.info("Запрос на сохранение позиций чека")
         return ResponseEntity.ok(receiptPositionService.saveAll(request, currentUser))
-    }
-
-    @DeleteMapping("/delete")
-    @Operation(summary = "Удаление позиции в чеке по id")
-    fun delete(@RequestParam id: UUID): ResponseEntity<ReceiptPositionResponse> {
-        log.info("Request delete ReceiptsPosition")
-        return ResponseEntity.ok(receiptPositionService.delete(id))
     }
 }

@@ -19,7 +19,7 @@ class MailService(
 
     @Transactional
     internal fun sendPassCode(userEntity: UserEntity) {
-        log.info("Generation verification code")
+        log.info("Генерация кода подтверждения")
         val passcode = generatePassCode()
 
         val passwordEntity = PasswordEntity(
@@ -27,8 +27,8 @@ class MailService(
             passcode = passcode,
             expireDate = System.currentTimeMillis() + authenticationProperties.passwordLifeTime
         )
-        log.info("Verification code for user ${userEntity.id} has been generated")
-        log.debug("Verification code for user {}: {}", userEntity.id, passcode)
+        log.info("Код подтверждения для пользователя ${userEntity.id} сгенерирован")
+        log.debug("Код подтверждения для пользователя {}: {}", userEntity.id, passcode)
         passwordsRepository.save(passwordEntity)
 
         emailSender.sendPassCodeMessage(userEntity.email, passcode)

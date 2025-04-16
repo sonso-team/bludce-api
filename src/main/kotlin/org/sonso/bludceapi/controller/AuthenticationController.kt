@@ -39,7 +39,7 @@ class AuthenticationController(
         @RequestBody request: AuthenticationRequest,
         response: HttpServletResponse,
     ): ResponseEntity<AuthenticationResponse> {
-        log.info("Request to authorization")
+        log.info("Запрос на авторизацию")
         return ResponseEntity.ok(authenticationService.authorization(request, response))
     }
 
@@ -48,7 +48,7 @@ class AuthenticationController(
     fun sendCode(
         @RequestBody request: SendCodeRequest,
     ): ResponseEntity<Map<String, String>> {
-        log.info("Request to sending password-code")
+        log.info("Запрос на отправку кода пароля")
         return ResponseEntity.ok(authenticationService.sendCode(request))
     }
 
@@ -57,7 +57,7 @@ class AuthenticationController(
     fun registration(
         @RequestBody request: RegistrationRequest,
     ): ResponseEntity<AuthenticationResponse> {
-        log.info("Request to registration")
+        log.info("Запрос на регистрацию")
         return ResponseEntity.ok(authenticationService.registration(request))
     }
 
@@ -67,7 +67,7 @@ class AuthenticationController(
         @CookieValue(value = "refreshToken") token: String,
         response: HttpServletResponse,
     ): ResponseEntity<Map<String, String>> {
-        log.info("Request to logout")
+        log.info("Запрос на logout")
         if (token.isEmpty()) throw AuthenticationException("Refresh токен пустой")
         return ResponseEntity.ok(authenticationService.logout(response))
     }
@@ -78,7 +78,7 @@ class AuthenticationController(
         @CookieValue(value = "refreshToken") token: String,
         response: HttpServletResponse,
     ): ResponseEntity<AuthenticationResponse> {
-        log.info("Request to refresh")
+        log.info("Запрос на обновление токена")
         return ResponseEntity.ok(authenticationService.refresh(token, response))
     }
 
@@ -87,7 +87,7 @@ class AuthenticationController(
     fun whoAmI(
         @RequestHeader(value = "Authorization") token: String,
     ): ResponseEntity<User> {
-        log.info("Request to WhoAmI")
+        log.info("Запрос WhoAmI")
         return ResponseEntity.ok().body(authenticationService.whoAmI(token))
     }
 }
