@@ -24,20 +24,22 @@ class ReceiptService(
     private val log = LoggerFactory.getLogger(this::class.java)
 
     fun getAllByInitiatorId(initiatorId: UUID): List<ReceiptResponse>? {
-        log.debug("Запрос на получение чека по id инициатора: $initiatorId")
+        log.info("Request to get all Receipt by initiator id")
+        log.debug("Request to get all Receipt by initiator id: $initiatorId")
         return receiptRepository.findByInitiatorId(initiatorId)
             ?.map { it.toReceiptResponse() }
     }
 
     fun getById(id: UUID): ReceiptResponse {
-        log.debug("Запрос на получение чека по id: $id")
+        log.info("Request to get Receipt by id")
+        log.debug("Request to get Receipt by id: $id")
         return receiptRepository.findById(id)
             .orElseThrow { NoSuchElementException("Чек с id $id не найден") }
             .toReceiptResponse()
     }
 
     fun getAll(): List<ReceiptResponse> {
-        log.info("Запрос на получение всех чеков")
+        log.info("Request to get all Receipt")
         return receiptRepository.findAll()
             .map { it.toReceiptResponse() }
     }
@@ -69,15 +71,15 @@ class ReceiptService(
 
     @Transactional
     fun delete(id: UUID): ReceiptResponse {
-        log.info("Удаление чека начато")
-        log.debug("Удаление чека с id: $id начато")
+        log.info("Deleting Receipt")
+        log.debug("Deleting Receipt position with id: $id")
 
         val existingReceipt = receiptRepository.findById(id)
             .orElseThrow { NoSuchElementException("Чек с id: $id не найден") }
 
         receiptRepository.delete(existingReceipt)
 
-        log.info("Удаление чека прошло успешно")
+        log.info("Deleting Receipt successful")
         return existingReceipt.toReceiptResponse()
     }
 

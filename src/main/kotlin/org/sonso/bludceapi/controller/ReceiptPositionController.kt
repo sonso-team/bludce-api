@@ -31,7 +31,7 @@ class ReceiptPositionController(
     @GetMapping
     @Operation(summary = "Получение позиций из всех чеков")
     fun getAll(): ResponseEntity<List<ReceiptPositionResponse>> {
-        log.info("Запрос на получение позиций из всех чеков")
+        log.info("Request get all ReceiptPosition")
         return ResponseEntity.ok(receiptPositionService.getAll())
     }
 
@@ -41,7 +41,7 @@ class ReceiptPositionController(
         @RequestBody request: List<ReceiptPosition>,
         @AuthenticationPrincipal currentUser: UserEntity
     ): ResponseEntity<ReceiptPositionSaveResponse> {
-        log.info("Запрос на сохранение позиций чека")
+        log.info("Request save ReceiptPosition")
         return ResponseEntity.ok(receiptPositionService.saveAll(request, currentUser))
     }
 }

@@ -35,7 +35,7 @@ class AuthenticationService(
 
     @Transactional
     fun authorization(request: AuthenticationRequest, response: HttpServletResponse): AuthenticationResponse {
-        log.info("Начать авторизация в сервисе")
+        log.info("start authorization in service")
 
         validateCredentials(request)
 
@@ -68,8 +68,8 @@ class AuthenticationService(
         val tokens = jwtService.generateTokens(userEntity)
         setRefreshToken(response, tokens[1])
 
-        log.debug("Пользователь {} был авторизован", userEntity.id)
-        log.info("Авторизация прошла успешно")
+        log.debug("User {} has been authorized", userEntity.id)
+        log.info("Authorization is successful")
 
         return AuthenticationResponse(
             message = "Авторизация прошла успешно",
@@ -94,12 +94,12 @@ class AuthenticationService(
         val emails = userRepository.findAllEmails()
 
         if (phoneNumbers.contains(request.phoneNumber)) {
-            log.warn("Ошибка регистрации: пользователь с  ${request.phoneNumber} уже существует")
+            log.warn("Registration error: User with ${request.phoneNumber} is success")
             throw AuthenticationException("Пользователь с таким номером телефона уже существует")
         }
 
         if (emails.contains(request.email)) {
-            log.warn("Ошибка регистрации: пользователь с ${request.email} уже существует")
+            log.warn("Registration error: User with ${request.email} is success")
             throw AuthenticationException("Пользователь с таким адресом электронной почты уже существует")
         }
 
@@ -110,12 +110,12 @@ class AuthenticationService(
                 email = request.email
             )
         )
-        log.debug("Пользователь {} успешно сохранен в базе данных", userEntity.id)
+        log.debug("User {} successful saved in database", userEntity.id)
 
         mailService.sendPassCode(userEntity)
 
-        log.debug("Пользователь {} зарегистрирован", userEntity.id)
-        log.info("Регистрация прошла успешно")
+        log.debug("User {} has been register", userEntity.id)
+        log.info("Registration is successful")
         return AuthenticationResponse(
             message =
             "Пользователь зарегистрирован. Для окончания регистрации и входа введите код отправленный на почту",
@@ -134,7 +134,7 @@ class AuthenticationService(
 
     fun refresh(token: String, response: HttpServletResponse): AuthenticationResponse {
         if (token.isEmpty()) {
-            log.warn("Токен пустой")
+            log.warn("Token is empty")
             throw AuthenticationException("Токен пуст")
         }
 
@@ -145,7 +145,7 @@ class AuthenticationService(
 
         setRefreshToken(response, tokens[1])
 
-        log.debug("Токен для пользователя {} обновлен", userEntity.id)
+        log.debug("Token for user {} has been refreshed", userEntity.id)
 
         return AuthenticationResponse(
             message = "Токены успешно обновлены",
@@ -157,7 +157,7 @@ class AuthenticationService(
     fun whoAmI(token: String): User {
         val userEntity = userRepository.findByPhoneNumber(jwtService.getUsername(token.substring(7)))
             ?: throw UserNotFoundException("Пользователь не существует")
-        log.info("WhoAmI для пользователя ${userEntity.id} успешно")
+        log.info("WhoAmI for user ${userEntity.id} successful")
         return userEntity.toUser()
     }
 

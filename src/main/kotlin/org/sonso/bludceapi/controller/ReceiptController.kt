@@ -37,23 +37,23 @@ class ReceiptController(
     private val log = LoggerFactory.getLogger(this::class.java)
 
     @GetMapping("/history")
-    @Operation(summary = "Получение всех чеков по id пользователя")
+    @Operation(summary = "Получение всех чеков пользователя")
     fun getAllByInitiator(@AuthenticationPrincipal user: UserEntity): ResponseEntity<List<ReceiptResponse>?> {
-        log.info("Запрос на получение всех чеков пользователя по id")
+        log.info("Request to receive all user receipts by id")
         return ResponseEntity.ok(receiptService.getAllByInitiatorId(user.id))
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Получение чека по id")
     fun getReceipt(@PathVariable id: UUID): ResponseEntity<ReceiptResponse> {
-        log.info("Запрос на получение чека по id: $id")
+        log.info("Request Receipt by id: $id")
         return ResponseEntity.ok(receiptService.getById(id))
     }
 
     @GetMapping
     @Operation(summary = "Получение всех чеков")
     fun getAll(): ResponseEntity<List<ReceiptResponse>> {
-        log.info("Запрос на получение всех чеков")
+        log.info("Request get all Receipts")
         return ResponseEntity.ok(receiptService.getAll())
     }
 
@@ -62,7 +62,7 @@ class ReceiptController(
     fun calculate(
         @RequestParam("file") file: MultipartFile
     ): ResponseEntity<List<ReceiptPosition>> {
-        log.info("Файл чека: ${file.originalFilename}, размер: ${file.size} байт")
+        log.info("File received: ${file.originalFilename}, size: ${file.size} bytes")
         return ResponseEntity(receiptParserService.getImageFromText(file), HttpStatus.OK)
     }
 
@@ -72,14 +72,14 @@ class ReceiptController(
         @RequestBody request: ReceiptUpdateRequest,
         @AuthenticationPrincipal currentUser: UserEntity
     ): ResponseEntity<Map<String, String>> {
-        log.info("Запрос на сохранение чека")
+        log.info("Request save Receipts")
         return ResponseEntity.ok(receiptService.update(request, currentUser))
     }
 
     @DeleteMapping("/delete")
     @Operation(summary = "Удаление чека по id")
     fun delete(@RequestParam id: UUID): ResponseEntity<ReceiptResponse> {
-        log.info("Запрос на удаление чека по id: $id")
+        log.info("Request delete Receipt")
         return ResponseEntity.ok(receiptService.delete(id))
     }
 }
