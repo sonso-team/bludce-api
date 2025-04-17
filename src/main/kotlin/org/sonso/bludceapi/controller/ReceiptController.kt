@@ -80,7 +80,8 @@ class ReceiptController(
         @AuthenticationPrincipal currentUser: UserEntity
     ): ResponseEntity<Map<String, String>> {
         log.info("Request save Receipts")
-        return ResponseEntity.ok(receiptService.update(request, currentUser))
+        receiptService.update(request, currentUser)
+        return ResponseEntity(HttpStatus.OK)
     }
 
     @DeleteMapping("/delete")

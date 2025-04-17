@@ -21,6 +21,7 @@ fun ReceiptPositionEntity.toReceiptPosition() = ReceiptPosition(
 )
 
 fun ReceiptPositionEntity.toReceiptPositionResponse() = ReceiptPositionResponse(
+    id = id,
     name = name,
     quantity = quantity,
     price = price,
@@ -33,7 +34,9 @@ fun ReceiptEntity.toReceiptResponse() = ReceiptResponse(
     tipsType = this.tipsType,
     tipsPercent = this.tipsPercent,
     personCount = this.personCount,
-    initiator = this.initiator.toUser(),
+    initiatorName = this.initiator.name,
+    totalAmount = this.totalAmount,
+    tipsAmount = this.tipsAmount,
     createdAt = createdAt,
     updatedAt = updatedAt,
     positions = this.positions.map { it.toReceiptPosition() }
