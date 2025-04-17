@@ -1,7 +1,7 @@
 package org.sonso.bludceapi.dto.request
 
-import org.sonso.bludceapi.config.properties.ReceiptType
-import org.sonso.bludceapi.config.properties.TipsType
+import org.sonso.bludceapi.dto.ReceiptType
+import org.sonso.bludceapi.dto.TipsType
 import java.util.UUID
 
 data class ReceiptRequest(

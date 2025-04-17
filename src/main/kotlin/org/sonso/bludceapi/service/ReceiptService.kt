@@ -1,8 +1,8 @@
 package org.sonso.bludceapi.service
 
 import org.slf4j.LoggerFactory
-import org.sonso.bludceapi.config.properties.ReceiptType
-import org.sonso.bludceapi.config.properties.TipsType
+import org.sonso.bludceapi.dto.ReceiptType
+import org.sonso.bludceapi.dto.TipsType
 import org.sonso.bludceapi.dto.request.ReceiptUpdateRequest
 import org.sonso.bludceapi.dto.response.ReceiptResponse
 import org.sonso.bludceapi.entity.UserEntity

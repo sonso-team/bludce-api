@@ -1,11 +1,14 @@
-package org.sonso.bludceapi.config
+package org.sonso.bludceapi.config.websocket
 
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.TextWebSocketHandler
 
 class LobbySocketHandler : TextWebSocketHandler() {
+    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     private val lobbySessions = mutableMapOf<String, MutableList<WebSocketSession>>()
 
@@ -14,7 +17,7 @@ class LobbySocketHandler : TextWebSocketHandler() {
         val sessions = lobbySessions.getOrPut(lobbyId) { mutableListOf() }
         sessions.add(session)
 
-        println("Пользователь подключился к лобби $lobbyId")
+        logger.info("Пользователь подключился к лобби $lobbyId")
     }
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
