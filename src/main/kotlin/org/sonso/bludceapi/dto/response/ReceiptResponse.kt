@@ -1,8 +1,8 @@
 package org.sonso.bludceapi.dto.response
 
+import org.sonso.bludceapi.dto.ReceiptPosition
 import org.sonso.bludceapi.dto.ReceiptType
 import org.sonso.bludceapi.dto.TipsType
-import org.sonso.bludceapi.dto.ReceiptPosition
 import org.sonso.bludceapi.dto.User
 import java.time.LocalDateTime
 import java.util.*
