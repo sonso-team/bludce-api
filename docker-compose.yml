@@ -16,6 +16,19 @@ services:
     ports:
       - "5700:5432"
 
+  bludce-redis:
+    image: redis:latest
+    container_name: bludce_redis
+    hostname: bludce_redis
+    restart: always
+    command: [ "redis-server", "--appendonly", "yes" ]
+    networks:
+      - backend
+    volumes:
+      - /home/kinoko/redis/bludce:/data
+    ports:
+      - '6700:6379'
+
   bludce-api:
     build:
       dockerfile: ./Dockerfile

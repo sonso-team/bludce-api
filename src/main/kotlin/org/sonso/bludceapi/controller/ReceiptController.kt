@@ -6,7 +6,11 @@ import org.slf4j.LoggerFactory
 import org.sonso.bludceapi.dto.ReceiptPosition
 import org.sonso.bludceapi.dto.request.ReceiptUpdateRequest
 import org.sonso.bludceapi.dto.response.ReceiptResponse
+import org.sonso.bludceapi.dto.ws.WSResponse
+import org.sonso.bludceapi.entity.ReceiptEntity
 import org.sonso.bludceapi.entity.UserEntity
+import org.sonso.bludceapi.repository.ReceiptRepository
+import org.sonso.bludceapi.repository.RedisRepository
 import org.sonso.bludceapi.service.ReceiptParserService
 import org.sonso.bludceapi.service.ReceiptService
 import org.springframework.http.HttpStatus
@@ -22,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
+import java.math.BigDecimal
 import java.util.*
 
 @RestController
@@ -32,7 +37,9 @@ import java.util.*
 )
 class ReceiptController(
     private val receiptService: ReceiptService,
-    private val receiptParserService: ReceiptParserService
+    private val receiptParserService: ReceiptParserService,
+    private val redisRepository: RedisRepository,
+    private val receiptRepository: ReceiptRepository
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -74,5 +81,31 @@ class ReceiptController(
     fun delete(@RequestParam id: UUID): ResponseEntity<ReceiptResponse> {
         log.info("Request delete Receipt")
         return ResponseEntity.ok(receiptService.delete(id))
+    }
+
+    @PostMapping("/{id}/finish/{userId}")
+    fun finish(
+        @PathVariable id: UUID,
+        @PathVariable userId: UUID
+    ): ResponseEntity<String> {
+        val receipt = receiptRepository.findById(id).orElseThrow()
+        val state = redisRepository.getState(id.toString())
+
+        val amount = calcUserAmount(receipt, state, userId)
+
+        // или просто вернуть REST‑ом
+        redisRepository.clear(id.toString())
+        return ResponseEntity.ok("К оплате $amount")
+    }
+
+    private fun calcUserAmount(
+        receipt: ReceiptEntity,
+        state: List<WSResponse>,
+        userId: UUID
+    ): BigDecimal {
+        val positions = receipt.positions
+            .filter { p -> state.any { it.id == p.id && it.userId == userId } }
+
+        return positions.fold(BigDecimal.ZERO) { acc, pos -> acc + pos.price }
     }
 }
