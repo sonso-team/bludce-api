@@ -10,8 +10,8 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
-import org.sonso.bludceapi.config.properties.ReceiptType
-import org.sonso.bludceapi.config.properties.TipsType
+import org.sonso.bludceapi.dto.ReceiptType
+import org.sonso.bludceapi.dto.TipsType
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -48,5 +48,5 @@ class ReceiptEntity {
     lateinit var initiator: UserEntity
 
     @OneToMany(mappedBy = "receipt", cascade = [CascadeType.ALL], orphanRemoval = true)
-    var positions: MutableList<ReceiptPositionEntity> = mutableListOf()
+    var positions: List<ReceiptPositionEntity> = listOf()
 }

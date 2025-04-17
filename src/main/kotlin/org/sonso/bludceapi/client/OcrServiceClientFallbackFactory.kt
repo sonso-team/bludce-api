@@ -17,7 +17,7 @@ class OcrServiceClientFallbackFactory : FallbackFactory<OcrServiceClient> {
                 @RequestPart(value = "file") file: MultipartFile,
                 @RequestPart(value = "language") language: String,
                 @RequestPart(value = "isTable") isTable: String,
-                @RequestPart(value = "OCREngine") oCREngine: String
+                @RequestPart(value = "OCREngine") oCREngine: String,
             ): OcrServiceClientResponse {
                 log.error("Fallback: OcrService is down. Returning fallback response.", cause)
                 throw RuntimeException(

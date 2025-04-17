@@ -1,4 +1,4 @@
-package org.sonso.bludceapi.config
+package org.sonso.bludceapi.config.websocket
 
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.socket.config.annotation.EnableWebSocket

@@ -1,4 +1,4 @@
-package org.sonso.bludceapi.config
+package org.sonso.bludceapi.config.authentication
 
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
