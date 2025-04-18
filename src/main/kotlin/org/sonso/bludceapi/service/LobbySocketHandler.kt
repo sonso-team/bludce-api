@@ -126,6 +126,42 @@ class LobbySocketHandler(
         }
     }
 
+    /**
+     * Публичный метод, который освобождает у state.userId,
+     * пересчитывает суммы и рассылает всем клиентам UPDATE.
+     */
+    fun broadcastState(lobbyId: String, state: List<WSResponse>) {
+        // 1) Сохраняем в Redis, чтобы новые клиенты видели актуалку
+        redis.replaceState(lobbyId, state)
+
+        // 2) Считаем fullAmount = сумма всех price*quantity
+        val fullAmount = state.fold(BigDecimal.ZERO) { acc, p ->
+            acc + p.price.multiply(p.quantity.toBigDecimal())
+        }.toDouble()
+
+        // 3) Считаем amount = сумма уже оплаченных (paidBy != null)
+        val amount = state
+            .filter { it.paidBy != null }
+            .fold(BigDecimal.ZERO) { acc, p ->
+                acc + p.price.multiply(p.quantity.toBigDecimal())
+            }
+            .toDouble()
+
+        // 4) Готовим и шлём UPDATE
+        val update = UpdatePayload(
+            type       = "UPDATE",
+            amount     = amount,
+            fullAmount = fullAmount,
+            state      = state
+        )
+        sessions[lobbyId]?.forEach { sess ->
+            if (sess.isOpen) {
+                sess.sendMessage(TextMessage(mapper.writeValueAsString(update)))
+            }
+        }
+        log.debug("[$lobbyId] broadcastState: amount=$amount, fullAmount=$fullAmount")
+    }
+
     private fun WebSocketSession.send(obj: Any) =
         sendMessage(TextMessage(mapper.writeValueAsString(obj)))
 
