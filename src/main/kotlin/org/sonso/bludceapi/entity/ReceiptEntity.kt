@@ -35,8 +35,8 @@ class ReceiptEntity {
     @Column(name = "tips_percent")
     var tipsPercent: Int? = null
 
-    @Column(name = "person_count")
-    var personCount: Int? = null
+    @Column(name = "person_count", nullable = false)
+    var personCount: Int = 1
 
     @Column(name = "tips_value")
     var tipsValue: BigDecimal? = null

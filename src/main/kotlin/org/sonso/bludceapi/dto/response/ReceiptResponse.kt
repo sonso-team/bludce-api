@@ -13,7 +13,7 @@ data class ReceiptResponse(
     val tipsType: TipsType,
     val tipsValue: BigDecimal?,
     val tipsPercent: Int?,
-    val personCount: Int?,
+    val personCount: Int,
     val totalAmount: BigDecimal,
     val tipsAmount: BigDecimal,
     val createdAt: LocalDateTime,

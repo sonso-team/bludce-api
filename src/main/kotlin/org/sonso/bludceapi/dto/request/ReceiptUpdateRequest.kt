@@ -11,5 +11,5 @@ data class ReceiptUpdateRequest(
     val tipsType: TipsType,
     val tipsPercent: Int?,
     val tipsValue: BigDecimal?,
-    val personCount: Int?
+    val personCount: Int
 )

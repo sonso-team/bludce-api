@@ -1,7 +1,6 @@
 package org.sonso.bludceapi.service
 
 import org.slf4j.LoggerFactory
-import org.sonso.bludceapi.dto.ReceiptType
 import org.sonso.bludceapi.dto.TipsType
 import org.sonso.bludceapi.dto.request.ReceiptUpdateRequest
 import org.sonso.bludceapi.dto.response.ReceiptResponse
@@ -60,14 +59,14 @@ class ReceiptService(
             initiator = currentUser
             receiptType = request.receiptType
             tipsType = request.tipsType
-            personCount = request.personCount.takeIf { receiptType == ReceiptType.EVENLY }
+            personCount = request.personCount
             tipsPercent = request.tipsPercent.takeIf { isTipsPercentAllowed(tipsType) }
             tipsValue = request.tipsValue.takeIf { isTipsValueAllowed(tipsType) }
             updatedAt = LocalDateTime.now()
 
             tipsAmount = when (request.tipsType) {
                 TipsType.NONE, TipsType.PROPORTIONALLY -> 0.0
-                else -> tipsValue!!.toDouble() * personCount!!
+                else -> tipsValue!!.toDouble() * personCount
             }.toBigDecimal()
 
             totalAmount = this.positions
@@ -119,17 +118,6 @@ class ReceiptService(
 
         require(!isTipsMismatch) {
             "Некорректные данные: несоответствие между типом чаевых, процентом и/или значением"
-        }
-
-        val receiptType = updateRequest.receiptType
-        val personCount = updateRequest.personCount
-
-        val isPersonMismatch =
-            (receiptType == ReceiptType.EVENLY && (personCount?.let { it > 0 } != true)) ||
-                (receiptType == ReceiptType.PROPORTIONALLY && (personCount?.let { it > 0 } == true))
-
-        require(!isPersonMismatch) {
-            "Некорректные данные: тип чека не соответствует заданному количеству персон"
         }
     }
 }
