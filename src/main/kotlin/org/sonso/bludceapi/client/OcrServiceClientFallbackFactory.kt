@@ -21,8 +21,8 @@ class OcrServiceClientFallbackFactory : FallbackFactory<OcrServiceClient> {
             ): OcrServiceClientResponse {
                 log.error("Fallback: OcrService is down. Returning fallback response.", cause)
                 throw RuntimeException(
-                    "Fallback: OcrService is temporarily unavailable." +
-                        " Please try again later."
+                    "Fallback: OCR сервис временное недоступен." +
+                        " Пожалуйста повторите позже."
                 )
             }
         }

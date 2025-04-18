@@ -11,6 +11,7 @@ import org.sonso.bludceapi.util.toReceiptResponse
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*
 
@@ -23,10 +24,18 @@ class ReceiptService(
 
     private val log = LoggerFactory.getLogger(this::class.java)
 
+    fun getAllByInitiatorId(initiatorId: UUID): List<ReceiptResponse>? {
+        log.info("Request to get all Receipt by initiator id")
+        log.debug("Request to get all Receipt by initiator id: $initiatorId")
+        return receiptRepository.findByInitiatorId(initiatorId)
+            ?.map { it.toReceiptResponse() }
+    }
+
     fun getById(id: UUID): ReceiptResponse {
+        log.info("Request to get Receipt by id")
         log.debug("Request to get Receipt by id: $id")
         return receiptRepository.findById(id)
-            .orElseThrow { NoSuchElementException("Receipt with ID $id not found") }
+            .orElseThrow { NoSuchElementException("Чек с id $id не найден") }
             .toReceiptResponse()
     }
 
@@ -37,11 +46,11 @@ class ReceiptService(
     }
 
     @Transactional
-    fun update(request: ReceiptUpdateRequest, currentUser: UserEntity): Map<String, String> {
+    fun update(request: ReceiptUpdateRequest, currentUser: UserEntity) {
         validateUpdate(request)
 
         val receipt = receiptRepository.findById(request.receiptId)
-            .orElseThrow { NoSuchElementException("Receipt with ID ${request.receiptId} not found") }
+            .orElseThrow { NoSuchElementException("Чек с ID ${request.receiptId} не найден") }
 
         require(currentUser.id == receipt.initiator.id) {
             "Ошибка, нельзя изменять не свой чек"
@@ -53,12 +62,14 @@ class ReceiptService(
             tipsType = request.tipsType
             personCount = request.personCount.takeIf { receiptType == ReceiptType.EVENLY }
             tipsPercent = request.tipsPercent.takeIf { isTipsPercentAllowed(tipsType) }
+            tipsValue = request.tipsValue.takeIf { isTipsValueAllowed(tipsType) }
             updatedAt = LocalDateTime.now()
+            request.tipsValue?.let { tipsAmount = it }
+            totalAmount = this.positions
+                .map { it.price.multiply(it.quantity.toBigDecimal()) }
+                .fold(BigDecimal.ZERO, BigDecimal::add)
         }
-
         receiptRepository.save(receipt)
-
-        return mapOf("urlConnection" to "$baseUrl/lobby/${receipt.id}")
     }
 
     @Transactional
@@ -67,7 +78,7 @@ class ReceiptService(
         log.debug("Deleting Receipt position with id: $id")
 
         val existingReceipt = receiptRepository.findById(id)
-            .orElseThrow { NoSuchElementException("Receipt with id: $id not found") }
+            .orElseThrow { NoSuchElementException("Чек с id: $id не найден") }
 
         receiptRepository.delete(existingReceipt)
 
@@ -75,16 +86,34 @@ class ReceiptService(
         return existingReceipt.toReceiptResponse()
     }
 
+    fun isTipsPercentAllowed(tipsType: TipsType): Boolean =
+        tipsType == TipsType.PROPORTIONALLY
+
+    fun isTipsValueAllowed(tipsType: TipsType): Boolean =
+        tipsType == TipsType.EVENLY
+
     private fun validateUpdate(updateRequest: ReceiptUpdateRequest) {
         val tipsType = updateRequest.tipsType
         val tipsPercent = updateRequest.tipsPercent
+        val tipsValue = updateRequest.tipsValue
 
-        val isTipsMismatch =
-            (tipsType in listOf(TipsType.EVENLY, TipsType.PROPORTIONALLY) && (tipsPercent?.let { it > 0 } != true)) ||
-                (tipsType in listOf(TipsType.NONE, TipsType.FOR_KICKS) && (tipsPercent?.let { it > 0 } == true))
+        val isPercentAllowed = isTipsPercentAllowed(tipsType)
+        val isValueAllowed = isTipsValueAllowed(tipsType)
+
+        val isTipsMismatch = when (tipsType) {
+            TipsType.FOR_KICKS ->
+                tipsPercent != null || tipsValue != null
+
+            else -> {
+                val isPercentValid = if (isPercentAllowed) tipsPercent?.let { it > 0 } == true else tipsPercent == null
+                val isValueValid =
+                    if (isValueAllowed) tipsValue?.let { it > BigDecimal.ZERO } == true else tipsValue == null
+                !isPercentValid || !isValueValid
+            }
+        }
 
         require(!isTipsMismatch) {
-            "Некорректные данные: тип чаевых не соответствует заданному проценту"
+            "Некорректные данные: несоответствие между типом чаевых, процентом и/или значением"
         }
 
         val receiptType = updateRequest.receiptType
@@ -98,7 +127,4 @@ class ReceiptService(
             "Некорректные данные: тип чека не соответствует заданному количеству персон"
         }
     }
-
-    fun isTipsPercentAllowed(tipsType: TipsType): Boolean =
-        tipsType == TipsType.EVENLY || tipsType == TipsType.PROPORTIONALLY
 }

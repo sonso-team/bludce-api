@@ -43,6 +43,13 @@ class ReceiptController(
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
 
+    @GetMapping("/history")
+    @Operation(summary = "Получение всех чеков пользователя")
+    fun getAllByInitiator(@AuthenticationPrincipal user: UserEntity): ResponseEntity<List<ReceiptResponse>?> {
+        log.info("Request to receive all user receipts by id")
+        return ResponseEntity.ok(receiptService.getAllByInitiatorId(user.id))
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Получение чека по id")
     fun getReceipt(@PathVariable id: UUID): ResponseEntity<ReceiptResponse> {
@@ -73,7 +80,8 @@ class ReceiptController(
         @AuthenticationPrincipal currentUser: UserEntity
     ): ResponseEntity<Map<String, String>> {
         log.info("Request save Receipts")
-        return ResponseEntity.ok(receiptService.update(request, currentUser))
+        receiptService.update(request, currentUser)
+        return ResponseEntity(HttpStatus.OK)
     }
 
     @DeleteMapping("/delete")
