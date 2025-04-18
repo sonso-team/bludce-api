@@ -9,9 +9,10 @@ import org.sonso.bludceapi.entity.ReceiptPositionEntity
 import org.sonso.bludceapi.entity.UserEntity
 
 fun UserEntity.toUser() = User(
-    id = this.id.toString(),
-    phoneNumber = this.phoneNumber,
-    email = this.email,
+    id = id.toString(),
+    name = name,
+    phoneNumber = phoneNumber,
+    email = email,
 )
 
 fun ReceiptPositionEntity.toReceiptPosition() = ReceiptPosition(
@@ -25,19 +26,20 @@ fun ReceiptPositionEntity.toReceiptPositionResponse() = ReceiptPositionResponse(
     name = name,
     quantity = quantity,
     price = price,
-    receiptId = this.receipt?.id
+    receiptId = receipt?.id
 )
 
 fun ReceiptEntity.toReceiptResponse() = ReceiptResponse(
-    id = this.id,
-    receiptType = this.receiptType,
-    tipsType = this.tipsType,
-    tipsPercent = this.tipsPercent,
-    personCount = this.personCount,
-    initiatorName = this.initiator.name,
-    totalAmount = this.totalAmount,
-    tipsAmount = this.tipsAmount,
+    id = id,
+    receiptType = receiptType,
+    tipsType = tipsType,
+    tipsValue = tipsValue,
+    tipsPercent = tipsPercent,
+    personCount = personCount,
+    initiatorName = initiator.name,
+    totalAmount = totalAmount,
+    tipsAmount = tipsAmount,
     createdAt = createdAt,
     updatedAt = updatedAt,
-    positions = this.positions.map { it.toReceiptPosition() }
+    positions = positions.map { it.toReceiptPosition() }
 )

@@ -14,10 +14,10 @@ spring:
     driver-class-name: org.postgresql.Driver
   data:
     redis:
-#      host: bludce_redis     # docker-compose
-#      port: 6379
-      host: localhost     # idea
-      port: 6700
+      host: bludce_redis     # docker-compose
+      port: 6379
+#      host: localhost     # idea
+#      port: 6700
   mail:
     host: smtp.gmail.com
     port: 587

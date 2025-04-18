@@ -11,6 +11,7 @@ data class ReceiptResponse(
     val id: UUID,
     val receiptType: ReceiptType,
     val tipsType: TipsType,
+    val tipsValue: BigDecimal?,
     val tipsPercent: Int?,
     val personCount: Int?,
     val totalAmount: BigDecimal,

@@ -15,6 +15,5 @@ class WebSocketConfig(
     override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
         registry.addHandler(handler, "/ws/lobby/{receiptId}")
             .setAllowedOriginPatterns("*")
-            .withSockJS()
     }
 }

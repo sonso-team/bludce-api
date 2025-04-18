@@ -64,7 +64,12 @@ class ReceiptService(
             tipsPercent = request.tipsPercent.takeIf { isTipsPercentAllowed(tipsType) }
             tipsValue = request.tipsValue.takeIf { isTipsValueAllowed(tipsType) }
             updatedAt = LocalDateTime.now()
-            request.tipsValue?.let { tipsAmount = it }
+
+            tipsAmount = when (request.tipsType) {
+                TipsType.NONE, TipsType.PROPORTIONALLY -> 0.0
+                else -> tipsValue!!.toDouble() * personCount!!
+            }.toBigDecimal()
+
             totalAmount = this.positions
                 .map { it.price.multiply(it.quantity.toBigDecimal()) }
                 .fold(BigDecimal.ZERO, BigDecimal::add)

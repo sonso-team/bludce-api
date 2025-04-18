@@ -4,13 +4,13 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.slf4j.LoggerFactory
 import org.sonso.bludceapi.dto.ReceiptPosition
+import org.sonso.bludceapi.dto.request.FinishRequest
 import org.sonso.bludceapi.dto.request.ReceiptUpdateRequest
+import org.sonso.bludceapi.dto.response.FinishResponse
 import org.sonso.bludceapi.dto.response.ReceiptResponse
-import org.sonso.bludceapi.dto.ws.WSResponse
-import org.sonso.bludceapi.entity.ReceiptEntity
 import org.sonso.bludceapi.entity.UserEntity
-import org.sonso.bludceapi.repository.ReceiptRepository
 import org.sonso.bludceapi.repository.RedisRepository
+import org.sonso.bludceapi.service.LobbySocketHandler
 import org.sonso.bludceapi.service.ReceiptParserService
 import org.sonso.bludceapi.service.ReceiptService
 import org.springframework.http.HttpStatus
@@ -39,7 +39,7 @@ class ReceiptController(
     private val receiptService: ReceiptService,
     private val receiptParserService: ReceiptParserService,
     private val redisRepository: RedisRepository,
-    private val receiptRepository: ReceiptRepository
+    private val lobbySocketHandler: LobbySocketHandler
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -94,26 +94,29 @@ class ReceiptController(
     @PostMapping("/{id}/finish/{userId}")
     fun finish(
         @PathVariable id: UUID,
-        @PathVariable userId: UUID
-    ): ResponseEntity<String> {
-        val receipt = receiptRepository.findById(id).orElseThrow()
+        @PathVariable userId: UUID,
+        @RequestBody body: FinishRequest
+    ): FinishResponse {
         val state = redisRepository.getState(id.toString())
 
-        val amount = calcUserAmount(receipt, state, userId)
+        // позиции, выбранные текущим юзером
+        val myPositions = state.filter { it.userId == userId }
 
-        // или просто вернуть REST‑ом
-        redisRepository.clear(id.toString())
-        return ResponseEntity.ok("К оплате $amount")
-    }
+        val amount = myPositions.fold(BigDecimal.ZERO) { acc, p ->
+            acc + p.price.multiply(p.quantity.toBigDecimal())
+        }
+        val tips = body.tips
+        val total = amount + tips
 
-    private fun calcUserAmount(
-        receipt: ReceiptEntity,
-        state: List<WSResponse>,
-        userId: UUID
-    ): BigDecimal {
-        val positions = receipt.positions
-            .filter { p -> state.any { it.id == p.id && it.userId == userId } }
+        // формируем новое состояние: отмечаем paidBy и освобождаем userId
+        val newState = state.map {
+            if (it.userId == userId)
+                it.copy(userId = null, paidBy = userId)
+            else it
+        }
 
-        return positions.fold(BigDecimal.ZERO) { acc, pos -> acc + pos.price }
+        lobbySocketHandler.broadcastState(id.toString(), newState)
+
+        return FinishResponse(amount, tips, total)
     }
 }
