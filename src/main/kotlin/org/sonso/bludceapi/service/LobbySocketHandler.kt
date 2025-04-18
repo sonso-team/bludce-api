@@ -149,10 +149,10 @@ class LobbySocketHandler(
 
         // 4) Готовим и шлём UPDATE
         val update = UpdatePayload(
-            type       = "UPDATE",
-            amount     = amount,
+            type = "UPDATE",
+            amount = amount,
             fullAmount = fullAmount,
-            state      = state
+            state = state
         )
         sessions[lobbyId]?.forEach { sess ->
             if (sess.isOpen) {
