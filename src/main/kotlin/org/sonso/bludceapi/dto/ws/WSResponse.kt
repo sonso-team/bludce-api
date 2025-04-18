@@ -8,6 +8,6 @@ data class WSResponse(
     val name: String,
     val quantity: Int,
     val price: BigDecimal,
-    val userId: UUID? = null, // временный “держатель”
-    val paidBy: UUID? = null // ← новый флаг “кто оплатил”
+    val userId: UUID? = null,
+    val paidBy: UUID? = null
 )

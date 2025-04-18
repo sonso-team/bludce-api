@@ -6,45 +6,52 @@ import org.slf4j.LoggerFactory
 import org.sonso.bludceapi.dto.ws.InitPayload
 import org.sonso.bludceapi.dto.ws.UpdatePayload
 import org.sonso.bludceapi.dto.ws.WSResponse
+import org.sonso.bludceapi.entity.ReceiptEntity
 import org.sonso.bludceapi.repository.ReceiptPositionRepository
+import org.sonso.bludceapi.repository.ReceiptRepository
 import org.sonso.bludceapi.repository.RedisRepository
 import org.springframework.stereotype.Service
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.TextWebSocketHandler
+import java.math.BigDecimal
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class LobbySocketHandler(
     private val redis: RedisRepository,
-    private val receiptPositionRepository: ReceiptPositionRepository
+    private val receiptRepo: ReceiptRepository,
+    private val positionRepo: ReceiptPositionRepository
 ) : TextWebSocketHandler() {
 
     private val log = LoggerFactory.getLogger(javaClass)
-    private val lobbySessions = ConcurrentHashMap<String, MutableSet<WebSocketSession>>() // чек -> сессии
-    private val userIds = ConcurrentHashMap<String, UUID>() // sessionId -> userId
+    private val sessions = ConcurrentHashMap<String, MutableSet<WebSocketSession>>()
+    private val userIds = ConcurrentHashMap<String, UUID>()
     private val mapper = jacksonObjectMapper()
 
     override fun afterConnectionEstablished(session: WebSocketSession) {
         val lobbyId = lobbyId(session) ?: return
-        lobbySessions.computeIfAbsent(lobbyId) { mutableSetOf() }.add(session)
+        sessions.computeIfAbsent(lobbyId) { mutableSetOf() }.add(session)
 
+        // выдаём каждому свой userId
         val uid = UUID.randomUUID()
         userIds[session.id] = uid
 
+        // 1) вытаскиваем текущий state из Redis
         var state = redis.getState(lobbyId)
-
         if (state.isEmpty()) {
-            val positions = receiptPositionRepository.findAllByReceiptId(UUID.fromString(lobbyId))
-            state = positions.map {
+            // 2) если нет — инициализируем из БД
+            val entities = positionRepo.findAllByReceiptId(UUID.fromString(lobbyId))
+            state = entities.map {
                 WSResponse(
                     id = it.id,
                     name = it.name,
                     quantity = it.quantity,
                     price = it.price,
-                    userId = null
+                    userId = null,
+                    paidBy = null
                 )
             }
             redis.replaceState(lobbyId, state)
@@ -53,44 +60,69 @@ class LobbySocketHandler(
             log.debug("[$lobbyId] state взят из Redis (${state.size} позиций)")
         }
 
-        session.send(InitPayload(userId = uid, state = state))
+        // 3) достаём данные чека (тип, проценты и пр.)
+        val receipt: ReceiptEntity = receiptRepo.findById(UUID.fromString(lobbyId)).orElseThrow()
+
+        // 4) считаем fullAmount и amount
+        val fullAmount = state
+            .fold(BigDecimal.ZERO) { acc, p -> acc + p.price.multiply(p.quantity.toBigDecimal()) }
+            .toDouble()
+        val amount = state
+            .filter { it.paidBy != null }
+            .fold(BigDecimal.ZERO) { acc, p -> acc + p.price.multiply(p.quantity.toBigDecimal()) }
+            .toDouble()
+
+        // 5) шлём INIT
+        val init = InitPayload(
+            userId = uid,
+            receiptType = receipt.receiptType,
+            tipsType = receipt.tipsType,
+            amount = amount,
+            fullAmount = fullAmount,
+            state = state
+        )
+        session.send(init)
         log.info("[$lobbyId] user $uid подключился")
     }
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
         val lobbyId = lobbyId(session) ?: return
 
-        val payload: List<WSResponse> = mapper.readValue(
+        // 1) читаем обновлённый state из JSON
+        val newState: List<WSResponse> = mapper.readValue(
             message.payload,
             object : TypeReference<List<WSResponse>>() {}
         )
+        // 2) сохраняем в Redis
+        redis.replaceState(lobbyId, newState)
 
-        // сохраняем атомарно
-        redis.replaceState(lobbyId, payload)
+        // 3) пересчитываем суммы
+        val fullAmount = newState
+            .fold(BigDecimal.ZERO) { acc, p -> acc + p.price.multiply(p.quantity.toBigDecimal()) }
+            .toDouble()
+        val amount = newState
+            .filter { it.paidBy != null }
+            .fold(BigDecimal.ZERO) { acc, p -> acc + p.price.multiply(p.quantity.toBigDecimal()) }
+            .toDouble()
 
-        // разлетается всем, кроме автора
-        val update = UpdatePayload(state = payload)
-        lobbySessions[lobbyId]?.forEach {
+        // 4) рассылаем всем остальным UPDATE
+        val update = UpdatePayload(
+            amount = amount,
+            fullAmount = fullAmount,
+            state = newState
+        )
+        sessions[lobbyId]?.forEach {
             if (it != session && it.isOpen) it.send(update)
         }
     }
 
     override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
         val lobbyId = lobbyId(session) ?: return
-        lobbySessions[lobbyId]?.remove(session)
-        if (lobbySessions[lobbyId].isNullOrEmpty()) {
+        sessions[lobbyId]?.remove(session)
+        if (sessions[lobbyId].isNullOrEmpty()) {
             redis.clear(lobbyId)
-            lobbySessions.remove(lobbyId)
+            sessions.remove(lobbyId)
             log.info("[$lobbyId] лобби закрылось, Redis очищен")
-        }
-    }
-
-    fun broadcastState(lobbyId: String, state: List<WSResponse>) {
-        redis.replaceState(lobbyId, state)
-
-        val update = UpdatePayload(state = state)
-        lobbySessions[lobbyId]?.forEach { sess ->
-            if (sess.isOpen) sess.send(update)
         }
     }
 
