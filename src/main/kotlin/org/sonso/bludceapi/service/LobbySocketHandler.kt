@@ -64,13 +64,7 @@ class LobbySocketHandler(
         val receipt: ReceiptEntity = receiptRepo.findById(UUID.fromString(lobbyId)).orElseThrow()
 
         // 4) считаем fullAmount и amount
-        val fullAmount = state
-            .fold(BigDecimal.ZERO) { acc, p -> acc + p.price.multiply(p.quantity.toBigDecimal()) }
-            .toDouble()
-        val amount = state
-            .filter { it.paidBy != null }
-            .fold(BigDecimal.ZERO) { acc, p -> acc + p.price.multiply(p.quantity.toBigDecimal()) }
-            .toDouble()
+        val (fullAmount, amount) = sumRecount(state).let { it[0] to it[1] }
 
         // 5) шлём INIT
         val init = InitPayload(
@@ -88,32 +82,42 @@ class LobbySocketHandler(
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
         val lobbyId = lobbyId(session) ?: return
 
-        // 1) читаем обновлённый state из JSON
+        // читаем обновлённый state из JSON
         val newState: List<WSResponse> = mapper.readValue(
             message.payload,
             object : TypeReference<List<WSResponse>>() {}
         )
-        // 2) сохраняем в Redis
-        redis.replaceState(lobbyId, newState)
 
-        // 3) пересчитываем суммы
-        val fullAmount = newState
-            .fold(BigDecimal.ZERO) { acc, p -> acc + p.price.multiply(p.quantity.toBigDecimal()) }
-            .toDouble()
-        val amount = newState
-            .filter { it.paidBy != null }
-            .fold(BigDecimal.ZERO) { acc, p -> acc + p.price.multiply(p.quantity.toBigDecimal()) }
-            .toDouble()
-
-        // 4) рассылаем всем остальным UPDATE
-        val update = UpdatePayload(
-            amount = amount,
-            fullAmount = fullAmount,
-            state = newState
-        )
+        val update = updateStates(lobbyId, newState)
         sessions[lobbyId]?.forEach {
             if (it != session && it.isOpen) it.send(update)
         }
+    }
+
+    private fun updateStates(lobbyId: String, state: List<WSResponse>): UpdatePayload {
+        // 2) сохраняем в Redis
+        redis.replaceState(lobbyId, state)
+
+        // 3) пересчитываем суммы
+        val (amount, fullAmount) = sumRecount(state).let { it[0] to it[1] }
+        log.debug("{} updateState: amount={}, fullAmount={}", lobbyId, amount, fullAmount)
+
+        // 4) рассылаем всем остальным UPDATE
+        return UpdatePayload(
+            amount = amount,
+            fullAmount = fullAmount,
+            state = state
+        )
+    }
+
+    private fun sumRecount(state: List<WSResponse>): List<BigDecimal> {
+        val fullAmount = state
+            .fold(BigDecimal.ZERO) { acc, p -> acc + p.price.multiply(p.quantity.toBigDecimal()) }
+        val amount = state
+            .filter { it.paidBy != null }
+            .fold(BigDecimal.ZERO) { acc, p -> acc + p.price.multiply(p.quantity.toBigDecimal()) }
+
+        return listOf(fullAmount, amount)
     }
 
     override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
@@ -131,35 +135,10 @@ class LobbySocketHandler(
      * пересчитывает суммы и рассылает всем клиентам UPDATE.
      */
     fun broadcastState(lobbyId: String, state: List<WSResponse>) {
-        // 1) Сохраняем в Redis, чтобы новые клиенты видели актуалку
-        redis.replaceState(lobbyId, state)
-
-        // 2) Считаем fullAmount = сумма всех price*quantity
-        val fullAmount = state.fold(BigDecimal.ZERO) { acc, p ->
-            acc + p.price.multiply(p.quantity.toBigDecimal())
-        }.toDouble()
-
-        // 3) Считаем amount = сумма уже оплаченных (paidBy != null)
-        val amount = state
-            .filter { it.paidBy != null }
-            .fold(BigDecimal.ZERO) { acc, p ->
-                acc + p.price.multiply(p.quantity.toBigDecimal())
-            }
-            .toDouble()
-
-        // 4) Готовим и шлём UPDATE
-        val update = UpdatePayload(
-            type = "UPDATE",
-            amount = amount,
-            fullAmount = fullAmount,
-            state = state
-        )
+        val update = updateStates(lobbyId, state)
         sessions[lobbyId]?.forEach { sess ->
-            if (sess.isOpen) {
-                sess.sendMessage(TextMessage(mapper.writeValueAsString(update)))
-            }
+            if (sess.isOpen) sess.send(update)
         }
-        log.debug("[$lobbyId] broadcastState: amount=$amount, fullAmount=$fullAmount")
     }
 
     private fun WebSocketSession.send(obj: Any) =
