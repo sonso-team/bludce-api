@@ -12,6 +12,7 @@ import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import org.sonso.bludceapi.dto.ReceiptType
 import org.sonso.bludceapi.dto.TipsType
+import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -36,6 +37,15 @@ class ReceiptEntity {
 
     @Column(name = "person_count")
     var personCount: Int? = null
+
+    @Column(name = "tips_value")
+    var tipsValue: BigDecimal? = null
+
+    @Column(name = "total_amount", nullable = false)
+    var totalAmount: BigDecimal = BigDecimal.ZERO
+
+    @Column(name = "tips_amount", nullable = false)
+    var tipsAmount: BigDecimal = BigDecimal.ZERO
 
     @Column(name = "created_at", nullable = false)
     var createdAt: LocalDateTime = LocalDateTime.now()

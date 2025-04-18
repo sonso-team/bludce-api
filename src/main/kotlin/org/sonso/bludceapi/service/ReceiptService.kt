@@ -11,6 +11,7 @@ import org.sonso.bludceapi.util.toReceiptResponse
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*
 
@@ -45,7 +46,7 @@ class ReceiptService(
     }
 
     @Transactional
-    fun update(request: ReceiptUpdateRequest, currentUser: UserEntity): Map<String, String> {
+    fun update(request: ReceiptUpdateRequest, currentUser: UserEntity) {
         validateUpdate(request)
 
         val receipt = receiptRepository.findById(request.receiptId)
@@ -61,12 +62,19 @@ class ReceiptService(
             tipsType = request.tipsType
             personCount = request.personCount.takeIf { receiptType == ReceiptType.EVENLY }
             tipsPercent = request.tipsPercent.takeIf { isTipsPercentAllowed(tipsType) }
+            tipsValue = request.tipsValue.takeIf { isTipsValueAllowed(tipsType) }
             updatedAt = LocalDateTime.now()
+
+            tipsAmount = when (request.tipsType) {
+                TipsType.NONE, TipsType.PROPORTIONALLY -> 0.0
+                else -> tipsValue!!.toDouble() * personCount!!
+            }.toBigDecimal()
+
+            totalAmount = this.positions
+                .map { it.price.multiply(it.quantity.toBigDecimal()) }
+                .fold(BigDecimal.ZERO, BigDecimal::add)
         }
-
         receiptRepository.save(receipt)
-
-        return mapOf("urlConnection" to "$baseUrl/lobby/${receipt.id}")
     }
 
     @Transactional
@@ -83,16 +91,34 @@ class ReceiptService(
         return existingReceipt.toReceiptResponse()
     }
 
+    fun isTipsPercentAllowed(tipsType: TipsType): Boolean =
+        tipsType == TipsType.PROPORTIONALLY
+
+    fun isTipsValueAllowed(tipsType: TipsType): Boolean =
+        tipsType == TipsType.EVENLY
+
     private fun validateUpdate(updateRequest: ReceiptUpdateRequest) {
         val tipsType = updateRequest.tipsType
         val tipsPercent = updateRequest.tipsPercent
+        val tipsValue = updateRequest.tipsValue
 
-        val isTipsMismatch =
-            (tipsType in listOf(TipsType.EVENLY, TipsType.PROPORTIONALLY) && (tipsPercent?.let { it > 0 } != true)) ||
-                (tipsType in listOf(TipsType.NONE, TipsType.FOR_KICKS) && (tipsPercent?.let { it > 0 } == true))
+        val isPercentAllowed = isTipsPercentAllowed(tipsType)
+        val isValueAllowed = isTipsValueAllowed(tipsType)
+
+        val isTipsMismatch = when (tipsType) {
+            TipsType.FOR_KICKS ->
+                tipsPercent != null || tipsValue != null
+
+            else -> {
+                val isPercentValid = if (isPercentAllowed) tipsPercent?.let { it > 0 } == true else tipsPercent == null
+                val isValueValid =
+                    if (isValueAllowed) tipsValue?.let { it > BigDecimal.ZERO } == true else tipsValue == null
+                !isPercentValid || !isValueValid
+            }
+        }
 
         require(!isTipsMismatch) {
-            "Некорректные данные: тип чаевых не соответствует заданному проценту"
+            "Некорректные данные: несоответствие между типом чаевых, процентом и/или значением"
         }
 
         val receiptType = updateRequest.receiptType
@@ -106,7 +132,4 @@ class ReceiptService(
             "Некорректные данные: тип чека не соответствует заданному количеству персон"
         }
     }
-
-    fun isTipsPercentAllowed(tipsType: TipsType): Boolean =
-        tipsType == TipsType.EVENLY || tipsType == TipsType.PROPORTIONALLY
 }
