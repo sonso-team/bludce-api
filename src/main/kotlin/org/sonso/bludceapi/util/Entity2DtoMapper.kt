@@ -1,12 +1,18 @@
 package org.sonso.bludceapi.util
 
 import org.sonso.bludceapi.dto.ReceiptPosition
+import org.sonso.bludceapi.dto.ReceiptType
+import org.sonso.bludceapi.dto.TipsType
 import org.sonso.bludceapi.dto.User
 import org.sonso.bludceapi.dto.response.ReceiptPositionResponse
 import org.sonso.bludceapi.dto.response.ReceiptResponse
+import org.sonso.bludceapi.dto.ws.InitPayload
+import org.sonso.bludceapi.dto.ws.WSResponse
 import org.sonso.bludceapi.entity.ReceiptEntity
 import org.sonso.bludceapi.entity.ReceiptPositionEntity
 import org.sonso.bludceapi.entity.UserEntity
+import java.math.BigDecimal
+import java.util.UUID
 
 fun UserEntity.toUser() = User(
     id = id.toString(),
@@ -29,6 +35,13 @@ fun ReceiptPositionEntity.toReceiptPositionResponse() = ReceiptPositionResponse(
     receiptId = receipt?.id
 )
 
+fun ReceiptPositionEntity.toWSResponse() = WSResponse(
+    id = id,
+    name = name,
+    quantity = quantity,
+    price = price,
+)
+
 fun ReceiptEntity.toReceiptResponse() = ReceiptResponse(
     id = id,
     receiptType = receiptType,
@@ -43,3 +56,30 @@ fun ReceiptEntity.toReceiptResponse() = ReceiptResponse(
     updatedAt = updatedAt,
     positions = positions.map { it.toReceiptPosition() }
 )
+
+fun ReceiptEntity.toInitPayload(
+    uid: UUID,
+    amount: BigDecimal,
+    fullAmount: BigDecimal,
+    state: List<WSResponse>
+): InitPayload {
+    val userAmount = if (receiptType == ReceiptType.EVENLY) {
+        BigDecimal(totalAmount.toDouble() / personCount)
+    } else null
+
+    val tipsAmount = if (tipsType == TipsType.EVENLY) {
+        BigDecimal(tipsValue!!.toDouble() / personCount)
+    } else null
+
+    return InitPayload(
+        userId = uid,
+        receiptType = receiptType,
+        tipsType = tipsType,
+        tipsAmount = tipsAmount,
+        tipsPercent = tipsPercent,
+        userAmount = userAmount,
+        amount = amount,
+        fullAmount = fullAmount,
+        state = state,
+    )
+}

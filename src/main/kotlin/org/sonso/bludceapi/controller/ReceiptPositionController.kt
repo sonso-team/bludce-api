@@ -15,12 +15,11 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import java.util.*
 
 @RestController
 @RequestMapping("/api/receipt/position")
 @Tag(
-    name = "Receipt Position API",
+    name = "Позиции в чеке",
     description = "Основной контроллер по работе с позициями в чеке"
 )
 class ReceiptPositionController(
