@@ -139,7 +139,7 @@ class AuthenticationService(
         }
 
         val userEntity = userRepository.findByPhoneNumber(jwtService.getUsername(token.substring(7)))
-            ?: throw UserNotFoundException("User not exist")
+            ?: throw UserNotFoundException("Пользователь не существует")
 
         val tokens = jwtService.generateTokens(userEntity)
 

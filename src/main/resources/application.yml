@@ -1,7 +1,7 @@
 logging:
   config: 'classpath:log4j2.yml'
-#  level:
-#    org.sonso: debug
+  level:
+    org.sonso: debug
 
 spring:
   application:
@@ -12,6 +12,12 @@ spring:
     url: jdbc:postgresql://bludce_db:5432/bludce  # docker-compose
 #    url: jdbc:postgresql://localhost:5700/bludce   # idea
     driver-class-name: org.postgresql.Driver
+  data:
+    redis:
+      host: bludce_redis     # docker-compose
+      port: 6379
+#      host: localhost     # idea
+#      port: 6700
   mail:
     host: smtp.gmail.com
     port: 587

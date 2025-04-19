@@ -19,6 +19,6 @@ interface OcrServiceClient {
         @RequestPart("file") file: MultipartFile,
         @RequestPart("language") language: String = "rus",
         @RequestPart("isTable") isTable: String = "true",
-        @RequestPart("OCREngine") oCREngine: String = "5"
+        @RequestPart("OCREngine") oCREngine: String = "5",
     ): OcrServiceClientResponse
 }

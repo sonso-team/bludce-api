@@ -10,8 +10,9 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
-import org.sonso.bludceapi.config.properties.ReceiptType
-import org.sonso.bludceapi.config.properties.TipsType
+import org.sonso.bludceapi.dto.ReceiptType
+import org.sonso.bludceapi.dto.TipsType
+import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -34,8 +35,17 @@ class ReceiptEntity {
     @Column(name = "tips_percent")
     var tipsPercent: Int? = null
 
-    @Column(name = "person_count")
-    var personCount: Int? = null
+    @Column(name = "person_count", nullable = false)
+    var personCount: Int = 1
+
+    @Column(name = "tips_value")
+    var tipsValue: BigDecimal? = null
+
+    @Column(name = "total_amount", nullable = false)
+    var totalAmount: BigDecimal = BigDecimal.ZERO
+
+    @Column(name = "tips_amount", nullable = false)
+    var tipsAmount: BigDecimal = BigDecimal.ZERO
 
     @Column(name = "created_at", nullable = false)
     var createdAt: LocalDateTime = LocalDateTime.now()
@@ -48,5 +58,5 @@ class ReceiptEntity {
     lateinit var initiator: UserEntity
 
     @OneToMany(mappedBy = "receipt", cascade = [CascadeType.ALL], orphanRemoval = true)
-    var positions: MutableList<ReceiptPositionEntity> = mutableListOf()
+    var positions: List<ReceiptPositionEntity> = listOf()
 }

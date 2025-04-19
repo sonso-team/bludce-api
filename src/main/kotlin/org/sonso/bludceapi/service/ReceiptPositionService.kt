@@ -21,13 +21,6 @@ class ReceiptPositionService(
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
 
-    fun getById(id: UUID): ReceiptPositionResponse {
-        log.debug("Getting ReceiptPosition by id: $id")
-        return receiptPositionRepository.findById(id)
-            .orElseThrow { NoSuchElementException("ReceiptPosition with ID $id not found") }
-            .toReceiptPositionResponse()
-    }
-
     fun getAll(): List<ReceiptPositionResponse> {
         log.info("Request to get all ReceiptPosition")
         return receiptPositionRepository.findAll()
@@ -49,19 +42,5 @@ class ReceiptPositionService(
         log.debug("Saved ReceiptPositions: $saveReceiptPosition")
 
         return ReceiptPositionSaveResponse(receipt.id)
-    }
-
-    @Transactional
-    fun delete(id: UUID): ReceiptPositionResponse {
-        log.info("Deleting ReceiptPosition")
-        log.debug("Deleting ReceiptPosition with id: $id")
-
-        val existingReceiptPosition = receiptPositionRepository.findById(id)
-            .orElseThrow { NoSuchElementException("ReceiptPosition with id: $id not found") }
-
-        receiptPositionRepository.delete(existingReceiptPosition)
-
-        log.info("Deleting ReceiptPosition successful")
-        return existingReceiptPosition.toReceiptPositionResponse()
     }
 }

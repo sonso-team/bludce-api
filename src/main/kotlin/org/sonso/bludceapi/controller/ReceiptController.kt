@@ -4,7 +4,9 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.slf4j.LoggerFactory
 import org.sonso.bludceapi.dto.ReceiptPosition
+import org.sonso.bludceapi.dto.request.FinishRequest
 import org.sonso.bludceapi.dto.request.ReceiptUpdateRequest
+import org.sonso.bludceapi.dto.response.FinishResponse
 import org.sonso.bludceapi.dto.response.ReceiptResponse
 import org.sonso.bludceapi.entity.UserEntity
 import org.sonso.bludceapi.service.ReceiptParserService
@@ -27,14 +29,21 @@ import java.util.*
 @RestController
 @RequestMapping("/api/receipt")
 @Tag(
-    name = "Receipt API",
+    name = "Чеки",
     description = "Основной контроллер по работе с чеком"
 )
 class ReceiptController(
     private val receiptService: ReceiptService,
-    private val receiptParserService: ReceiptParserService
+    private val receiptParserService: ReceiptParserService,
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
+
+    @GetMapping("/history")
+    @Operation(summary = "Получение всех чеков пользователя")
+    fun getAllByInitiator(@AuthenticationPrincipal user: UserEntity): ResponseEntity<List<ReceiptResponse>?> {
+        log.info("Request to receive all user receipts by id")
+        return ResponseEntity.ok(receiptService.getAllByInitiatorId(user.id))
+    }
 
     @GetMapping("/{id}")
     @Operation(summary = "Получение чека по id")
@@ -66,13 +75,25 @@ class ReceiptController(
         @AuthenticationPrincipal currentUser: UserEntity
     ): ResponseEntity<Map<String, String>> {
         log.info("Request save Receipts")
-        return ResponseEntity.ok(receiptService.update(request, currentUser))
+        receiptService.update(request, currentUser)
+        return ResponseEntity(HttpStatus.OK)
     }
 
     @DeleteMapping("/delete")
     @Operation(summary = "Удаление чека по id")
     fun delete(@RequestParam id: UUID): ResponseEntity<ReceiptResponse> {
-        log.info("Request delete Receipt")
+        log.info("Request delete Receipt by id: $id")
         return ResponseEntity.ok(receiptService.delete(id))
+    }
+
+    @PostMapping("/{id}/finish/{userId}")
+    @Operation(summary = "Окончание деления счета пользователем")
+    fun finish(
+        @PathVariable id: UUID,
+        @PathVariable userId: UUID,
+        @RequestBody body: FinishRequest,
+    ): ResponseEntity<FinishResponse> {
+        log.info("User $userId is finish receipt deviation")
+        return ResponseEntity.ok(receiptService.finish(id, userId, body))
     }
 }

@@ -1,4 +1,4 @@
-package org.sonso.bludceapi.config.properties
+package org.sonso.bludceapi.dto
 
 enum class ReceiptType {
     EVENLY,
