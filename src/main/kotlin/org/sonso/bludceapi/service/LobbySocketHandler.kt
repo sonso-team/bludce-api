@@ -3,12 +3,14 @@ package org.sonso.bludceapi.service
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
+import org.sonso.bludceapi.dto.ReceiptType
 import org.sonso.bludceapi.dto.ws.UpdatePayload
 import org.sonso.bludceapi.dto.ws.WSResponse
 import org.sonso.bludceapi.entity.ReceiptEntity
-import org.sonso.bludceapi.repository.ReceiptPositionRepository
-import org.sonso.bludceapi.repository.ReceiptRepository
-import org.sonso.bludceapi.repository.RedisRepository
+import org.sonso.bludceapi.repository.jpa.ReceiptPositionRepository
+import org.sonso.bludceapi.repository.jpa.ReceiptRepository
+import org.sonso.bludceapi.repository.redis.PayedUserRedisRepository
+import org.sonso.bludceapi.repository.redis.ReceiptRedisRepository
 import org.sonso.bludceapi.util.toInitPayload
 import org.sonso.bludceapi.util.toWSResponse
 import org.springframework.stereotype.Service
@@ -22,9 +24,10 @@ import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class LobbySocketHandler(
-    private val redis: RedisRepository,
     private val receiptRepository: ReceiptRepository,
-    private val receiptPositionRepository: ReceiptPositionRepository
+    private val receiptRedisRepository: ReceiptRedisRepository,
+    private val receiptPositionRepository: ReceiptPositionRepository,
+    private val payedUserRedisRepository: PayedUserRedisRepository
 ) : TextWebSocketHandler() {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -41,12 +44,12 @@ class LobbySocketHandler(
         userIds[session.id] = uid
 
         // 1) вытаскиваем текущий state из Redis
-        var state = redis.getState(lobbyId)
+        var state = receiptRedisRepository.getState(lobbyId)
         if (state.isEmpty()) {
             // 2) если нет — инициализируем из БД
             val entities = receiptPositionRepository.findAllByReceiptId(UUID.fromString(lobbyId))
             state = entities.map { it.toWSResponse() }
-            redis.replaceState(lobbyId, state)
+            receiptRedisRepository.replaceState(lobbyId, state)
             log.debug("$lobbyId state loaded from Postgres (${state.size} positions)")
         } else {
             log.debug("$lobbyId state loaded from Redis (${state.size} positions)")
@@ -56,7 +59,15 @@ class LobbySocketHandler(
         val receipt: ReceiptEntity = receiptRepository.findById(UUID.fromString(lobbyId)).orElseThrow()
 
         // 4) считаем fullAmount и amount
-        val (fullAmount, amount) = sumRecount(state).let { it[0] to it[1] }
+        val amounts = sumRecount(state)
+        val fullAmount = amounts[1]
+        val amount = if (receipt.receiptType == ReceiptType.EVENLY) {
+            BigDecimal(
+                (fullAmount.toDouble() / receipt.personCount) * payedUserRedisRepository.getState(lobbyId).size
+            )
+        } else {
+            amounts[0]
+        }
 
         // 5) шлём INIT
         session.send(receipt.toInitPayload(uid, amount, fullAmount, state))
@@ -80,10 +91,19 @@ class LobbySocketHandler(
 
     private fun updateStates(lobbyId: String, state: List<WSResponse>): UpdatePayload {
         // 2) сохраняем в Redis
-        redis.replaceState(lobbyId, state)
+        receiptRedisRepository.replaceState(lobbyId, state)
 
         // 3) пересчитываем суммы
-        val (amount, fullAmount) = sumRecount(state).let { it[0] to it[1] }
+        val amounts = sumRecount(state)
+        val fullAmount = amounts[1]
+        val receipt = receiptRepository.findById(UUID.fromString(lobbyId)).orElseThrow()
+        val amount = if (receipt.receiptType == ReceiptType.EVENLY) {
+            BigDecimal(
+                (fullAmount.toDouble() / receipt.personCount) * payedUserRedisRepository.getState(lobbyId).size
+            )
+        } else {
+            amounts[0]
+        }
         log.debug("{} updateState: amount={}, fullAmount={}", lobbyId, amount, fullAmount)
 
         // 4) рассылаем всем остальным UPDATE
@@ -101,14 +121,14 @@ class LobbySocketHandler(
             .filter { it.paidBy != null }
             .fold(BigDecimal.ZERO) { acc, p -> acc + p.price.multiply(p.quantity.toBigDecimal()) }
 
-        return listOf(fullAmount, amount)
+        return listOf(amount, fullAmount)
     }
 
     override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
         val lobbyId = lobbyId(session) ?: return
         sessions[lobbyId]?.remove(session)
         if (sessions[lobbyId].isNullOrEmpty()) {
-            redis.clear(lobbyId)
+            receiptRedisRepository.clear(lobbyId)
             sessions.remove(lobbyId)
             log.info("Lobby $lobbyId has been closed, Redis cleared")
         }

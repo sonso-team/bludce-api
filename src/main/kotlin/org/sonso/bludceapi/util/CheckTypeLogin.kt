@@ -2,7 +2,7 @@ package org.sonso.bludceapi.util
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.sonso.bludceapi.repository.UserRepository
+import org.sonso.bludceapi.repository.jpa.UserRepository
 import org.sonso.bludceapi.service.AuthenticationService
 import org.sonso.bludceapi.util.exception.UserNotFoundException
 

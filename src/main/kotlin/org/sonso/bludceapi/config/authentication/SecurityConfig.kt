@@ -1,6 +1,6 @@
 package org.sonso.bludceapi.config.authentication
 
-import org.sonso.bludceapi.repository.UserRepository
+import org.sonso.bludceapi.repository.jpa.UserRepository
 import org.sonso.bludceapi.service.JwtService
 import org.sonso.bludceapi.util.CheckTypeLogin
 import org.springframework.context.annotation.Bean

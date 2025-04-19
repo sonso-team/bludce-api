@@ -6,13 +6,12 @@ import org.sonso.bludceapi.dto.response.ReceiptPositionResponse
 import org.sonso.bludceapi.dto.response.ReceiptPositionSaveResponse
 import org.sonso.bludceapi.entity.ReceiptEntity
 import org.sonso.bludceapi.entity.UserEntity
-import org.sonso.bludceapi.repository.ReceiptPositionRepository
-import org.sonso.bludceapi.repository.ReceiptRepository
+import org.sonso.bludceapi.repository.jpa.ReceiptPositionRepository
+import org.sonso.bludceapi.repository.jpa.ReceiptRepository
 import org.sonso.bludceapi.util.toReceiptPositionEntity
 import org.sonso.bludceapi.util.toReceiptPositionResponse
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.util.*
 
 @Service
 class ReceiptPositionService(
@@ -33,13 +32,13 @@ class ReceiptPositionService(
 
         val receipt = receiptRepository.save(ReceiptEntity().apply { initiator = currentUser })
 
-        var receiptPositions = request
+        val receiptPositions = request
             .map { it.toReceiptPositionEntity(receipt) }
 
         val saveReceiptPosition = receiptPositionRepository.saveAll(receiptPositions)
 
         log.info("Saved ReceiptPositions successful")
-        log.debug("Saved ReceiptPositions: $saveReceiptPosition")
+        log.debug("Saved ReceiptPositions: {}", saveReceiptPosition)
 
         return ReceiptPositionSaveResponse(receipt.id)
     }
