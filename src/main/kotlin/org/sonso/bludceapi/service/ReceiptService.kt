@@ -2,12 +2,14 @@ package org.sonso.bludceapi.service
 
 import org.slf4j.LoggerFactory
 import org.sonso.bludceapi.dto.TipsType
+import org.sonso.bludceapi.dto.request.FinishRequest
 import org.sonso.bludceapi.dto.request.ReceiptUpdateRequest
+import org.sonso.bludceapi.dto.response.FinishResponse
 import org.sonso.bludceapi.dto.response.ReceiptResponse
 import org.sonso.bludceapi.entity.UserEntity
 import org.sonso.bludceapi.repository.ReceiptRepository
+import org.sonso.bludceapi.repository.RedisRepository
 import org.sonso.bludceapi.util.toReceiptResponse
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
@@ -16,23 +18,23 @@ import java.util.*
 
 @Service
 class ReceiptService(
-    private val receiptRepository: ReceiptRepository
+    private val receiptRepository: ReceiptRepository,
+    private val redisRepository: RedisRepository,
+    private val lobbySocketHandler: LobbySocketHandler,
 ) {
-    @Value("\${app.host}")
-    lateinit var baseUrl: String
 
     private val log = LoggerFactory.getLogger(this::class.java)
 
     fun getAllByInitiatorId(initiatorId: UUID): List<ReceiptResponse>? {
         log.info("Request to get all Receipt by initiator id")
-        log.debug("Request to get all Receipt by initiator id: $initiatorId")
+        log.debug("Request to get all Receipt by initiator id: {}", initiatorId)
         return receiptRepository.findByInitiatorId(initiatorId)
             ?.map { it.toReceiptResponse() }
     }
 
     fun getById(id: UUID): ReceiptResponse {
         log.info("Request to get Receipt by id")
-        log.debug("Request to get Receipt by id: $id")
+        log.debug("Request to get Receipt by id: {}", id)
         return receiptRepository.findById(id)
             .orElseThrow { NoSuchElementException("Чек с id $id не найден") }
             .toReceiptResponse()
@@ -78,16 +80,38 @@ class ReceiptService(
 
     @Transactional
     fun delete(id: UUID): ReceiptResponse {
-        log.info("Deleting Receipt")
-        log.debug("Deleting Receipt position with id: $id")
-
         val existingReceipt = receiptRepository.findById(id)
             .orElseThrow { NoSuchElementException("Чек с id: $id не найден") }
 
         receiptRepository.delete(existingReceipt)
 
-        log.info("Deleting Receipt successful")
+        log.info("Deleting Receipt $id successful")
         return existingReceipt.toReceiptResponse()
+    }
+
+    fun finish(
+        id: UUID,
+        userId: UUID,
+        body: FinishRequest
+    ): FinishResponse {
+        val state = redisRepository.getState(id.toString())
+
+        val myPositions = state.filter { it.userId == userId }
+        val amount = myPositions.fold(BigDecimal.ZERO) { acc, p ->
+            acc + p.price.multiply(p.quantity.toBigDecimal())
+        }
+        val tips = body.tips
+        val total = amount + tips
+
+        // формируем новое состояние: отмечаем paidBy и освобождаем userId
+        val newState = state.map {
+            if (it.userId == userId)
+                it.copy(userId = null, paidBy = userId)
+            else it
+        }
+
+        lobbySocketHandler.broadcastState(id.toString(), newState)
+        return FinishResponse(amount, tips, total)
     }
 
     fun isTipsPercentAllowed(tipsType: TipsType): Boolean =

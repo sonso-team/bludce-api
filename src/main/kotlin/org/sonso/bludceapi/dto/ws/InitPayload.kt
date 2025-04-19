@@ -10,6 +10,9 @@ data class InitPayload(
     val userId: UUID,
     val receiptType: ReceiptType,
     val tipsType: TipsType,
+    val tipsAmount: BigDecimal?,
+    val tipsPercent: Int?,
+    val userAmount: BigDecimal?,
     val amount: BigDecimal,
     val fullAmount: BigDecimal,
     val state: List<WSResponse>

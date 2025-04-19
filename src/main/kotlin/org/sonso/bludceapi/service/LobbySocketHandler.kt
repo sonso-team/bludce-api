@@ -3,13 +3,14 @@ package org.sonso.bludceapi.service
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
-import org.sonso.bludceapi.dto.ws.InitPayload
 import org.sonso.bludceapi.dto.ws.UpdatePayload
 import org.sonso.bludceapi.dto.ws.WSResponse
 import org.sonso.bludceapi.entity.ReceiptEntity
 import org.sonso.bludceapi.repository.ReceiptPositionRepository
 import org.sonso.bludceapi.repository.ReceiptRepository
 import org.sonso.bludceapi.repository.RedisRepository
+import org.sonso.bludceapi.util.toInitPayload
+import org.sonso.bludceapi.util.toWSResponse
 import org.springframework.stereotype.Service
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
@@ -22,8 +23,8 @@ import java.util.concurrent.ConcurrentHashMap
 @Service
 class LobbySocketHandler(
     private val redis: RedisRepository,
-    private val receiptRepo: ReceiptRepository,
-    private val positionRepo: ReceiptPositionRepository
+    private val receiptRepository: ReceiptRepository,
+    private val receiptPositionRepository: ReceiptPositionRepository
 ) : TextWebSocketHandler() {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -43,40 +44,23 @@ class LobbySocketHandler(
         var state = redis.getState(lobbyId)
         if (state.isEmpty()) {
             // 2) если нет — инициализируем из БД
-            val entities = positionRepo.findAllByReceiptId(UUID.fromString(lobbyId))
-            state = entities.map {
-                WSResponse(
-                    id = it.id,
-                    name = it.name,
-                    quantity = it.quantity,
-                    price = it.price,
-                    userId = null,
-                    paidBy = null
-                )
-            }
+            val entities = receiptPositionRepository.findAllByReceiptId(UUID.fromString(lobbyId))
+            state = entities.map { it.toWSResponse() }
             redis.replaceState(lobbyId, state)
-            log.debug("[$lobbyId] state загружен из Postgres (${state.size} позиций)")
+            log.debug("$lobbyId state loaded from Postgres (${state.size} positions)")
         } else {
-            log.debug("[$lobbyId] state взят из Redis (${state.size} позиций)")
+            log.debug("$lobbyId state loaded from Redis (${state.size} positions)")
         }
 
         // 3) достаём данные чека (тип, проценты и пр.)
-        val receipt: ReceiptEntity = receiptRepo.findById(UUID.fromString(lobbyId)).orElseThrow()
+        val receipt: ReceiptEntity = receiptRepository.findById(UUID.fromString(lobbyId)).orElseThrow()
 
         // 4) считаем fullAmount и amount
         val (fullAmount, amount) = sumRecount(state).let { it[0] to it[1] }
 
         // 5) шлём INIT
-        val init = InitPayload(
-            userId = uid,
-            receiptType = receipt.receiptType,
-            tipsType = receipt.tipsType,
-            amount = amount,
-            fullAmount = fullAmount,
-            state = state
-        )
-        session.send(init)
-        log.info("[$lobbyId] user $uid подключился")
+        session.send(receipt.toInitPayload(uid, amount, fullAmount, state))
+        log.info("User $uid connected to $lobbyId")
     }
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
@@ -126,7 +110,7 @@ class LobbySocketHandler(
         if (sessions[lobbyId].isNullOrEmpty()) {
             redis.clear(lobbyId)
             sessions.remove(lobbyId)
-            log.info("[$lobbyId] лобби закрылось, Redis очищен")
+            log.info("Lobby $lobbyId has been closed, Redis cleared")
         }
     }
 
