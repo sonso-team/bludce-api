@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory
 import org.sonso.bludceapi.config.properties.AuthenticationProperties
 import org.sonso.bludceapi.entity.PasswordEntity
 import org.sonso.bludceapi.entity.UserEntity
-import org.sonso.bludceapi.repository.PasswordsRepository
+import org.sonso.bludceapi.repository.jpa.PasswordsRepository
 import org.springframework.stereotype.Service
 
 @Service

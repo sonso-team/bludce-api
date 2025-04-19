@@ -1,4 +1,4 @@
-package org.sonso.bludceapi.repository
+package org.sonso.bludceapi.repository.jpa
 
 import org.sonso.bludceapi.entity.PasswordEntity
 import org.sonso.bludceapi.entity.UserEntity

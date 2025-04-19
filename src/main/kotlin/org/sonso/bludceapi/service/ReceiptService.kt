@@ -1,14 +1,17 @@
 package org.sonso.bludceapi.service
 
 import org.slf4j.LoggerFactory
+import org.sonso.bludceapi.dto.ReceiptType
 import org.sonso.bludceapi.dto.TipsType
 import org.sonso.bludceapi.dto.request.FinishRequest
 import org.sonso.bludceapi.dto.request.ReceiptUpdateRequest
 import org.sonso.bludceapi.dto.response.FinishResponse
 import org.sonso.bludceapi.dto.response.ReceiptResponse
+import org.sonso.bludceapi.dto.ws.WSResponse
 import org.sonso.bludceapi.entity.UserEntity
-import org.sonso.bludceapi.repository.ReceiptRepository
-import org.sonso.bludceapi.repository.RedisRepository
+import org.sonso.bludceapi.repository.jpa.ReceiptRepository
+import org.sonso.bludceapi.repository.redis.PayedUserRedisRepository
+import org.sonso.bludceapi.repository.redis.ReceiptRedisRepository
 import org.sonso.bludceapi.util.toReceiptResponse
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -19,7 +22,8 @@ import java.util.*
 @Service
 class ReceiptService(
     private val receiptRepository: ReceiptRepository,
-    private val redisRepository: RedisRepository,
+    private val receiptRedisRepository: ReceiptRedisRepository,
+    private val payedUserRedisRepository: PayedUserRedisRepository,
     private val lobbySocketHandler: LobbySocketHandler,
 ) {
 
@@ -90,27 +94,43 @@ class ReceiptService(
     }
 
     fun finish(
-        id: UUID,
+        lobbyId: UUID,
         userId: UUID,
         body: FinishRequest
     ): FinishResponse {
-        val state = redisRepository.getState(id.toString())
+        val state = receiptRedisRepository.getState(lobbyId.toString())
+        val receipt = receiptRepository.findById(lobbyId).orElseThrow()
+
+        val payedUserState = payedUserRedisRepository.getState(lobbyId.toString()).toMutableList()
+        payedUserState.add(userId.toString())
+        payedUserRedisRepository.replaceState(lobbyId.toString(), payedUserState)
 
         val myPositions = state.filter { it.userId == userId }
-        val amount = myPositions.fold(BigDecimal.ZERO) { acc, p ->
-            acc + p.price.multiply(p.quantity.toBigDecimal())
+        val amount = if (receipt.receiptType == ReceiptType.PROPORTIONALLY) {
+            myPositions.fold(BigDecimal.ZERO) { acc, p ->
+                acc + p.price.multiply(p.quantity.toBigDecimal())
+            }
+        } else {
+            BigDecimal(receipt.totalAmount.toDouble() / receipt.personCount)
         }
         val tips = body.tips
         val total = amount + tips
 
         // формируем новое состояние: отмечаем paidBy и освобождаем userId
         val newState = state.map {
-            if (it.userId == userId)
-                it.copy(userId = null, paidBy = userId)
-            else it
+            if (it.userId == userId) {
+                WSResponse(
+                    id = it.id,
+                    name = it.name,
+                    quantity = it.quantity,
+                    price = it.price,
+                    userId = userId,
+                    paidBy = userId,
+                )
+            } else it
         }
 
-        lobbySocketHandler.broadcastState(id.toString(), newState)
+        lobbySocketHandler.broadcastState(lobbyId.toString(), newState)
         return FinishResponse(amount, tips, total)
     }
 

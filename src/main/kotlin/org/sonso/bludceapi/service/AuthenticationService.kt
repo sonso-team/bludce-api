@@ -11,8 +11,8 @@ import org.sonso.bludceapi.dto.request.RegistrationRequest
 import org.sonso.bludceapi.dto.request.SendCodeRequest
 import org.sonso.bludceapi.dto.response.AuthenticationResponse
 import org.sonso.bludceapi.entity.UserEntity
-import org.sonso.bludceapi.repository.PasswordsRepository
-import org.sonso.bludceapi.repository.UserRepository
+import org.sonso.bludceapi.repository.jpa.PasswordsRepository
+import org.sonso.bludceapi.repository.jpa.UserRepository
 import org.sonso.bludceapi.util.CheckTypeLogin
 import org.sonso.bludceapi.util.exception.AuthenticationException
 import org.sonso.bludceapi.util.exception.UserNotFoundException
