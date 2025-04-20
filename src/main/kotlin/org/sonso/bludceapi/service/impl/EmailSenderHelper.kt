@@ -4,13 +4,17 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.sonso.bludceapi.service.EmailSender
 import org.sonso.bludceapi.util.MailGenerator
+import org.springframework.boot.autoconfigure.mail.MailProperties
 import org.springframework.mail.javamail.JavaMailSenderImpl
 import org.springframework.mail.javamail.MimeMessageHelper
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 
 @Service
-internal class EmailSenderHelper(private val mailSender: JavaMailSenderImpl) : EmailSender {
+internal class EmailSenderHelper(
+    private val mailSender: JavaMailSenderImpl,
+    private val mailProperties: MailProperties
+) : EmailSender {
     private val log: Logger = LoggerFactory.getLogger(this::class.java)
 
     @Async
@@ -20,7 +24,7 @@ internal class EmailSenderHelper(private val mailSender: JavaMailSenderImpl) : E
         val message = mailSender.createMimeMessage()
         val helper = MimeMessageHelper(message, true, "UTF-8")
 
-        helper.setFrom("bludce-service@mail.ru")
+        helper.setFrom(mailProperties.username)
         helper.setTo(to)
         helper.setSubject("$passCode - одноразовый код для входа")
         helper.setText(MailGenerator.passwordMailTemplate(passCode), true) // true for HTML
