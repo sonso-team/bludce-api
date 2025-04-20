@@ -20,7 +20,7 @@ internal class EmailSenderHelper(private val mailSender: JavaMailSenderImpl) : E
         val message = mailSender.createMimeMessage()
         val helper = MimeMessageHelper(message, true, "UTF-8")
 
-        helper.setFrom("no-reply@gmail.com")
+        helper.setFrom("bludce-service@mail.ru")
         helper.setTo(to)
         helper.setSubject("$passCode - одноразовый код для входа")
         helper.setText(MailGenerator.passwordMailTemplate(passCode), true) // true for HTML
