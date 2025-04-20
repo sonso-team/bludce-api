@@ -20,17 +20,17 @@ spring:
 #      host: localhost     # idea
 #      port: 6700
   mail:
-    host: smtp.mail.ru
-    port: 465
-    username: bludce-service@mail.ru
-    password: tuBAhbHU6FdLMbrby6ta
-    protocol: smtps
+    host: smtp.yandex.ru
+    port: 587
+    username: sonso-team@yandex.ru
+    password: oepzssendkudatzw
+    protocol: smtp
     test-connection: true
     properties:
       mail:
         smtp:
           auth: true
-          ssl:
+          starttls:
             enable: true
   servlet:
     multipart:
