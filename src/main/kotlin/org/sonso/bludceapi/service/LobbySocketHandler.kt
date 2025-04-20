@@ -83,10 +83,7 @@ class LobbySocketHandler(
             object : TypeReference<List<WSResponse>>() {}
         )
 
-        val update = updateStates(lobbyId, newState)
-        sessions[lobbyId]?.forEach {
-            if (it != session && it.isOpen) it.send(update)
-        }
+        broadcastState(lobbyId, newState)
     }
 
     private fun updateStates(lobbyId: String, state: List<WSResponse>): UpdatePayload {
@@ -129,6 +126,7 @@ class LobbySocketHandler(
         sessions[lobbyId]?.remove(session)
         if (sessions[lobbyId].isNullOrEmpty()) {
             receiptRedisRepository.clear(lobbyId)
+            payedUserRedisRepository.clear(lobbyId)
             sessions.remove(lobbyId)
             log.info("Lobby $lobbyId has been closed, Redis cleared")
         }
