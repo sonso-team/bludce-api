@@ -1,15 +1,12 @@
 logging:
   config: 'classpath:log4j2.yml'
-#  level:
+  level:
+    feign: debug
 #    org.sonso: debug
 
 spring:
   application:
     name: bludce-api
-  servlet:
-    multipart:
-      max-file-size: 500MB
-      max-request-size: 500MB
   datasource:
     username: bludce
     password: bludce
@@ -34,9 +31,20 @@ spring:
           auth: true
           starttls:
             enable: true
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 10000   # 10 сек
+            readTimeout: 180000  # 3 мин
+            logger-level: full
 
 app:
-  host: "https://bank.uwu-devcrew.ru"
   auth:
     admin-code: 123123
     password-life-time: 120000
