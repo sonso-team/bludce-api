@@ -70,9 +70,10 @@ class ReceiptService(
             tipsValue = request.tipsValue.takeIf { isTipsValueAllowed(tipsType) }
             updatedAt = LocalDateTime.now()
 
-            tipsAmount = when (request.tipsType) {
-                TipsType.NONE, TipsType.PROPORTIONALLY -> 0.0
-                else -> tipsValue!!.toDouble() * personCount
+            tipsAmount = if (tipsType == TipsType.EVENLY) {
+                tipsValue!!.toDouble() * personCount
+            } else {
+                0.0
             }.toBigDecimal()
 
             totalAmount = this.positions

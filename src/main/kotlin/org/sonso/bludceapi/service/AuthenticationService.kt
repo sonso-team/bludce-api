@@ -35,8 +35,6 @@ class AuthenticationService(
 
     @Transactional
     fun authorization(request: AuthenticationRequest, response: HttpServletResponse): AuthenticationResponse {
-        log.info("start authorization in service")
-
         validateCredentials(request)
 
         val userEntity = CheckTypeLogin.getUserByIdentifyingField(request.login, userRepository)
