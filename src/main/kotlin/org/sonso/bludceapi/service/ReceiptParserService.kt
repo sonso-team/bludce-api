@@ -2,6 +2,7 @@ package org.sonso.bludceapi.service
 
 import org.slf4j.LoggerFactory
 import org.sonso.bludceapi.client.OcrServiceClient
+import org.sonso.bludceapi.dto.OcrError
 import org.sonso.bludceapi.dto.ReceiptPosition
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
@@ -16,7 +17,12 @@ class ReceiptParserService(
         log.info("Sending image to OCR service: ${image.originalFilename}, size: ${image.size} bytes")
 
         val response = orcServiceClient.getTextFromImage(image)
-        val parsedText = response.parsedResults.firstOrNull()?.parsedText.orEmpty()
+
+        require(response.ocrExitCode != OcrError.SIZE_LIMIT) {
+            "Ошибка. Размер файла превышает максимально допустимый 1024 КБ"
+        }
+
+        val parsedText = response.parsedResults?.firstOrNull()?.parsedText.orEmpty()
 
         val lines = parsedText
             .split("\n", "\r")
