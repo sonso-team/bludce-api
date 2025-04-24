@@ -53,6 +53,9 @@ class ReceiptEntity {
     @Column(name = "updated_at")
     var updatedAt: LocalDateTime? = null
 
+    @Column(name = "is_closed", nullable = false)
+    var isClosed: Boolean = false
+
     @ManyToOne
     @JoinColumn(name = "initiator_id", referencedColumnName = "id", nullable = false)
     lateinit var initiator: UserEntity

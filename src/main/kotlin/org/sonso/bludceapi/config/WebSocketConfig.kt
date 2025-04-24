@@ -13,7 +13,8 @@ class WebSocketConfig(
 ) : WebSocketConfigurer {
 
     override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
-        registry.addHandler(handler, "/ws/lobby/{receiptId}")
+        //  /ws/lobby/{receiptId}/{uid?}
+        registry.addHandler(handler, "/ws/lobby/**")
             .setAllowedOriginPatterns("*")
     }
 }

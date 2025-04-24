@@ -7,6 +7,7 @@ import org.springframework.data.redis.core.RedisOperations
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.core.SessionCallback
 import org.springframework.stereotype.Repository
+import java.util.*
 
 @Repository
 class PayedUserRedisRepository(
@@ -53,4 +54,10 @@ class PayedUserRedisRepository(
     fun clear(receiptId: String) {
         redisTemplate.delete(key(receiptId))
     }
+
+    fun addUser(receiptId: String, uid: UUID) =
+        replaceState(receiptId, getState(receiptId) + uid.toString())
+
+    fun removeUser(receiptId: String, uid: UUID) =
+        replaceState(receiptId, getState(receiptId) - uid.toString())
 }

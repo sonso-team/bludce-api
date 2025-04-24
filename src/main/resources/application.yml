@@ -1,8 +1,5 @@
 logging:
   config: 'classpath:log4j2.yml'
-  level:
-    feign: debug
-#    org.sonso: debug
 
 spring:
   application:
@@ -42,7 +39,7 @@ spring:
         config:
           default:
             connectTimeout: 10000   # 10 сек
-            readTimeout: 180000  # 3 мин
+            readTimeout: 60000  # 1 мин
             logger-level: full
 
 app:
