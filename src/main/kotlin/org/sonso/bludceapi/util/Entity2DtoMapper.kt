@@ -6,8 +6,8 @@ import org.sonso.bludceapi.dto.TipsType
 import org.sonso.bludceapi.dto.User
 import org.sonso.bludceapi.dto.response.ReceiptPositionResponse
 import org.sonso.bludceapi.dto.response.ReceiptResponse
-import org.sonso.bludceapi.dto.ws.InitPayload
-import org.sonso.bludceapi.dto.ws.WSResponse
+import org.sonso.bludceapi.dto.ws.InitResponse
+import org.sonso.bludceapi.dto.ws.Payload
 import org.sonso.bludceapi.entity.ReceiptEntity
 import org.sonso.bludceapi.entity.ReceiptPositionEntity
 import org.sonso.bludceapi.entity.UserEntity
@@ -35,7 +35,7 @@ fun ReceiptPositionEntity.toReceiptPositionResponse() = ReceiptPositionResponse(
     receiptId = receipt?.id
 )
 
-fun ReceiptPositionEntity.toWSResponse() = WSResponse(
+fun ReceiptPositionEntity.toWSResponse() = Payload(
     id = id,
     name = name,
     quantity = quantity,
@@ -61,8 +61,8 @@ fun ReceiptEntity.toInitPayload(
     uid: UUID,
     amount: BigDecimal,
     fullAmount: BigDecimal,
-    state: List<WSResponse>
-): InitPayload {
+    state: List<Payload>
+): InitResponse {
     val userAmount = if (receiptType == ReceiptType.EVENLY) {
         BigDecimal(totalAmount.toDouble() / personCount)
     } else null
@@ -71,8 +71,9 @@ fun ReceiptEntity.toInitPayload(
         BigDecimal(tipsValue!!.toDouble() / personCount)
     } else null
 
-    return InitPayload(
+    return InitResponse(
         userId = uid,
+        initiatorId = initiator.id,
         receiptType = receiptType,
         tipsType = tipsType,
         tipsAmount = tipsAmount,

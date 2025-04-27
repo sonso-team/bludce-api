@@ -5,9 +5,10 @@ import org.sonso.bludceapi.dto.TipsType
 import java.math.BigDecimal
 import java.util.*
 
-data class InitPayload(
+data class InitResponse(
     val type: String = "INIT",
     val userId: UUID,
+    val initiatorId: UUID,
     val receiptType: ReceiptType,
     val tipsType: TipsType,
     val tipsAmount: BigDecimal?,
@@ -15,5 +16,5 @@ data class InitPayload(
     val userAmount: BigDecimal?,
     val amount: BigDecimal,
     val fullAmount: BigDecimal,
-    val state: List<WSResponse>
+    val state: List<Payload>
 )
