@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 
 data class OcrServiceClientResponse(
     @JsonProperty("ParsedResults")
-    val parsedResults: List<ParsedResultResponse>,
+    val parsedResults: List<ParsedResultResponse>? = null,
 
     @JsonProperty("OCRExitCode")
     val ocrExitCode: Int,
@@ -16,7 +16,13 @@ data class OcrServiceClientResponse(
     val processingTimeInMilliseconds: String,
 
     @JsonProperty("SearchablePDFURL")
-    val searchablePDFURL: String
+    val searchablePDFURL: String? = null,
+
+    @JsonProperty("ErrorMessage")
+    val errorMessage: List<String>? = null,
+
+    @JsonProperty("ErrorDetails")
+    val errorDetails: String? = null
 ) {
 
     data class TextOverlayResponse(

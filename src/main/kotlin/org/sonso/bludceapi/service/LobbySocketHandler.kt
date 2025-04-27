@@ -4,9 +4,9 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.sonso.bludceapi.dto.ReceiptType
+import org.sonso.bludceapi.dto.ws.ErrorPayload
 import org.sonso.bludceapi.dto.ws.UpdatePayload
 import org.sonso.bludceapi.dto.ws.WSResponse
-import org.sonso.bludceapi.entity.ReceiptEntity
 import org.sonso.bludceapi.repository.jpa.ReceiptPositionRepository
 import org.sonso.bludceapi.repository.jpa.ReceiptRepository
 import org.sonso.bludceapi.repository.redis.PayedUserRedisRepository
@@ -35,117 +35,130 @@ class LobbySocketHandler(
     private val userIds = ConcurrentHashMap<String, UUID>()
     private val mapper = jacksonObjectMapper()
 
-    override fun afterConnectionEstablished(session: WebSocketSession) {
-        val lobbyId = lobbyId(session) ?: return
-        sessions.computeIfAbsent(lobbyId) { mutableSetOf() }.add(session)
+    private data class PathParts(val receiptId: UUID, val uid: UUID?)
 
-        // выдаём каждому свой userId
-        val uid = UUID.randomUUID()
+    override fun afterConnectionEstablished(session: WebSocketSession) {
+        /* 1. Парсим путь */
+        val (receiptId, pathUid) = parse(session)
+            ?: return session.close(CloseStatus.BAD_DATA.withReason("Некорректный путь"))
+
+        /* 2. Проверяем чек */
+        val receipt = receiptRepository.findById(receiptId)
+            .orElseGet {
+                session.send(ErrorPayload(message = "Чек не найден"))
+                session.close(
+                    CloseStatus.BAD_DATA.withReason("Receipt $receiptId not found")
+                )
+                null
+            }
+            ?: return
+
+        if (receipt.isClosed) {
+            session.send(ErrorPayload(message = "Чек уже закрыт"))
+            return session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Receipt closed"))
+        }
+
+        /* 3. UserId: либо из path (re-connect), либо генерим */
+        val uid = pathUid ?: UUID.randomUUID()
         userIds[session.id] = uid
 
-        // 1) вытаскиваем текущий state из Redis
-        var state = receiptRedisRepository.getState(lobbyId)
-        if (state.isEmpty()) {
-            // 2) если нет — инициализируем из БД
-            val entities = receiptPositionRepository.findAllByReceiptId(UUID.fromString(lobbyId))
-            state = entities.map { it.toWSResponse() }
-            receiptRedisRepository.replaceState(lobbyId, state)
-            log.debug("$lobbyId state loaded from Postgres (${state.size} positions)")
-        } else {
-            log.debug("$lobbyId state loaded from Redis (${state.size} positions)")
-        }
+        /* 4. Регистрируем сессию */
+        val lobbyKey = receiptId.toString()
+        sessions.computeIfAbsent(lobbyKey) { mutableSetOf() }.add(session)
 
-        // 3) достаём данные чека (тип, проценты и пр.)
-        val receipt: ReceiptEntity = receiptRepository.findById(UUID.fromString(lobbyId)).orElseThrow()
+        /* 5. Если юзер новый – кладём его в Redis-«очередь ожидания» */
+        if (uid.toString() !in payedUserRedisRepository.getState(lobbyKey))
+            payedUserRedisRepository.addUser(lobbyKey, uid)
 
-        // 4) считаем fullAmount и amount
-        val amounts = sumRecount(state)
-        val fullAmount = amounts[1]
-        val amount = if (receipt.receiptType == ReceiptType.EVENLY) {
-            BigDecimal(
-                (fullAmount.toDouble() / receipt.personCount) * payedUserRedisRepository.getState(lobbyId).size
-            )
-        } else {
-            amounts[0]
-        }
+        /* 6. Грузим/кешируем позиции */
+        val state = receiptRedisRepository
+            .getState(lobbyKey)
+            .ifEmpty {
+                receiptPositionRepository
+                    .findAllByReceiptId(receiptId)
+                    .map { it.toWSResponse() }
+                    .also { receiptRedisRepository.replaceState(lobbyKey, it) }
+            }
 
-        // 5) шлём INIT
-        session.send(receipt.toInitPayload(uid, amount, fullAmount, state))
-        log.info("User $uid connected to $lobbyId")
+        /* 7. Считаем суммы */
+        val (paid, full) = sumRecount(state)
+        val amount = if (receipt.receiptType == ReceiptType.EVENLY)
+            full.divide(BigDecimal(receipt.personCount))
+        else paid
+
+        /* 8. Шлём INIT */
+        session.send(receipt.toInitPayload(uid, amount, full, state))
+        log.info("User $uid connected to $lobbyKey")
     }
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
-        val lobbyId = lobbyId(session) ?: return
-
-        // читаем обновлённый state из JSON
-        val newState: List<WSResponse> = mapper.readValue(
-            message.payload,
-            object : TypeReference<List<WSResponse>>() {}
-        )
-
+        val lobbyId = parse(session)?.receiptId?.toString() ?: return
+        val newState: List<WSResponse> =
+            mapper.readValue(message.payload, object : TypeReference<List<WSResponse>>() {})
         broadcastState(lobbyId, newState)
     }
 
-    private fun updateStates(lobbyId: String, state: List<WSResponse>): UpdatePayload {
-        // 2) сохраняем в Redis
-        receiptRedisRepository.replaceState(lobbyId, state)
-
-        // 3) пересчитываем суммы
-        val amounts = sumRecount(state)
-        val fullAmount = amounts[1]
-        val receipt = receiptRepository.findById(UUID.fromString(lobbyId)).orElseThrow()
-        val amount = if (receipt.receiptType == ReceiptType.EVENLY) {
-            BigDecimal(
-                (fullAmount.toDouble() / receipt.personCount) * payedUserRedisRepository.getState(lobbyId).size
-            )
-        } else {
-            amounts[0]
-        }
-        log.debug("{} updateState: amount={}, fullAmount={}", lobbyId, amount, fullAmount)
-
-        // 4) рассылаем всем остальным UPDATE
-        return UpdatePayload(
-            amount = amount,
-            fullAmount = fullAmount,
-            state = state
-        )
-    }
-
-    private fun sumRecount(state: List<WSResponse>): List<BigDecimal> {
-        val fullAmount = state
-            .fold(BigDecimal.ZERO) { acc, p -> acc + p.price.multiply(p.quantity.toBigDecimal()) }
-        val amount = state
-            .filter { it.paidBy != null }
-            .fold(BigDecimal.ZERO) { acc, p -> acc + p.price.multiply(p.quantity.toBigDecimal()) }
-
-        return listOf(amount, fullAmount)
-    }
-
     override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
-        val lobbyId = lobbyId(session) ?: return
-        sessions[lobbyId]?.remove(session)
-        if (sessions[lobbyId].isNullOrEmpty()) {
-            receiptRedisRepository.clear(lobbyId)
-            payedUserRedisRepository.clear(lobbyId)
-            sessions.remove(lobbyId)
-            log.info("Lobby $lobbyId has been closed, Redis cleared")
+        val receiptId = parse(session)?.receiptId ?: return
+        val lobbyKey = receiptId.toString()
+
+        sessions[lobbyKey]?.remove(session)
+
+        if (sessions[lobbyKey].isNullOrEmpty()) {
+            /* юзеров-«ожидающих оплаты» больше нет → закрываем чек */
+            if (payedUserRedisRepository.getState(lobbyKey).isEmpty()) {
+                receiptRepository.findById(receiptId).ifPresent {
+                    it.isClosed = true
+                    receiptRepository.save(it)
+                }
+                receiptRedisRepository.clear(lobbyKey)
+            }
+            sessions.remove(lobbyKey)
+            log.info("Lobby $lobbyKey disposed")
         }
     }
 
-    /**
-     * Публичный метод, который освобождает у state.userId,
-     * пересчитывает суммы и рассылает всем клиентам UPDATE.
-     */
+    private fun parse(session: WebSocketSession): PathParts? {
+        val parts = session.uri?.path
+            ?.removePrefix("/ws/lobby/")
+            ?.split("/")
+            ?.filter { it.isNotBlank() }
+            ?: return null // путь пустой/кривой
+
+        // 1. receiptId обязателен
+        val receiptId = parts.firstOrNull()
+            ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+            ?: return null
+
+        // 2. uid опционален
+        val uid = parts.getOrNull(1)
+            ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+
+        return PathParts(receiptId, uid)
+    }
+
+    private fun sumRecount(state: List<WSResponse>): Pair<BigDecimal, BigDecimal> {
+        var paid = BigDecimal.ZERO
+        var full = BigDecimal.ZERO
+        state.forEach {
+            val positionTotal = it.price * it.quantity.toBigDecimal()
+            full += positionTotal
+            if (it.paidBy != null) paid += positionTotal
+        }
+        return paid to full
+    }
+
     fun broadcastState(lobbyId: String, state: List<WSResponse>) {
         val update = updateStates(lobbyId, state)
-        sessions[lobbyId]?.forEach { sess ->
-            if (sess.isOpen) sess.send(update)
-        }
+        sessions[lobbyId]?.forEach { if (it.isOpen) it.send(update) }
+    }
+
+    private fun updateStates(lobbyId: String, state: List<WSResponse>): UpdatePayload {
+        receiptRedisRepository.replaceState(lobbyId, state)
+        val (paid, full) = sumRecount(state)
+        return UpdatePayload(amount = paid, fullAmount = full, state = state)
     }
 
     private fun WebSocketSession.send(obj: Any) =
         sendMessage(TextMessage(mapper.writeValueAsString(obj)))
-
-    private fun lobbyId(session: WebSocketSession) =
-        session.uri?.path?.substringAfterLast("/")
 }

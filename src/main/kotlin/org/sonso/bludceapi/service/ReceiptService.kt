@@ -117,6 +117,8 @@ class ReceiptService(
         val tips = body.tips
         val total = amount + tips
 
+        payedUserRedisRepository.removeUser(lobbyId.toString(), userId)
+
         // формируем новое состояние: отмечаем paidBy и освобождаем userId
         val newState = state.map {
             if (it.userId == userId) {
