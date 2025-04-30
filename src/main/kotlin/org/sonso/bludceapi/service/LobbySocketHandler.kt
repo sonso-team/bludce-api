@@ -4,9 +4,9 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.sonso.bludceapi.dto.ReceiptType
-import org.sonso.bludceapi.dto.ws.ErrorPayload
-import org.sonso.bludceapi.dto.ws.UpdatePayload
-import org.sonso.bludceapi.dto.ws.WSResponse
+import org.sonso.bludceapi.dto.ws.ErrorResponse
+import org.sonso.bludceapi.dto.ws.Payload
+import org.sonso.bludceapi.dto.ws.UpdateResponse
 import org.sonso.bludceapi.repository.jpa.ReceiptPositionRepository
 import org.sonso.bludceapi.repository.jpa.ReceiptRepository
 import org.sonso.bludceapi.repository.redis.PayedUserRedisRepository
@@ -45,7 +45,7 @@ class LobbySocketHandler(
         /* 2. Проверяем чек */
         val receipt = receiptRepository.findById(receiptId)
             .orElseGet {
-                session.send(ErrorPayload(message = "Чек не найден"))
+                session.send(ErrorResponse(message = "Чек не найден"))
                 session.close(
                     CloseStatus.BAD_DATA.withReason("Receipt $receiptId not found")
                 )
@@ -54,7 +54,7 @@ class LobbySocketHandler(
             ?: return
 
         if (receipt.isClosed) {
-            session.send(ErrorPayload(message = "Чек уже закрыт"))
+            session.send(ErrorResponse(message = "Чек уже закрыт"))
             return session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Receipt closed"))
         }
 
@@ -93,8 +93,8 @@ class LobbySocketHandler(
 
     override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
         val lobbyId = parse(session)?.receiptId?.toString() ?: return
-        val newState: List<WSResponse> =
-            mapper.readValue(message.payload, object : TypeReference<List<WSResponse>>() {})
+        val newState: List<Payload> =
+            mapper.readValue(message.payload, object : TypeReference<List<Payload>>() {})
         broadcastState(lobbyId, newState)
     }
 
@@ -137,7 +137,7 @@ class LobbySocketHandler(
         return PathParts(receiptId, uid)
     }
 
-    private fun sumRecount(state: List<WSResponse>): Pair<BigDecimal, BigDecimal> {
+    private fun sumRecount(state: List<Payload>): Pair<BigDecimal, BigDecimal> {
         var paid = BigDecimal.ZERO
         var full = BigDecimal.ZERO
         state.forEach {
@@ -148,15 +148,19 @@ class LobbySocketHandler(
         return paid to full
     }
 
-    fun broadcastState(lobbyId: String, state: List<WSResponse>) {
+    fun broadcastState(lobbyId: String, state: List<Payload>) {
         val update = updateStates(lobbyId, state)
         sessions[lobbyId]?.forEach { if (it.isOpen) it.send(update) }
     }
 
-    private fun updateStates(lobbyId: String, state: List<WSResponse>): UpdatePayload {
+    private fun updateStates(lobbyId: String, state: List<Payload>): UpdateResponse {
         receiptRedisRepository.replaceState(lobbyId, state)
         val (paid, full) = sumRecount(state)
-        return UpdatePayload(amount = paid, fullAmount = full, state = state)
+        return UpdateResponse(
+            amount = paid,
+            fullAmount = full,
+            state = state
+        )
     }
 
     private fun WebSocketSession.send(obj: Any) =

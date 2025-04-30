@@ -3,7 +3,7 @@ package org.sonso.bludceapi.repository.redis
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.sonso.bludceapi.dto.ws.WSResponse
+import org.sonso.bludceapi.dto.ws.Payload
 import org.springframework.data.redis.core.RedisOperations
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.data.redis.core.SessionCallback
@@ -17,14 +17,14 @@ class ReceiptRedisRepository(
 
     private fun key(receiptId: String) = "receipt:$receiptId:positions"
 
-    fun getState(receiptId: String): List<WSResponse> {
+    fun getState(receiptId: String): List<Payload> {
         val k = key(receiptId)
         val raw = redisTemplate.opsForList().range(k, 0, -1) ?: return emptyList()
 
         val mapper = jacksonObjectMapper()
         return raw.mapNotNull {
             try {
-                mapper.convertValue(it, WSResponse::class.java)
+                mapper.convertValue(it, Payload::class.java)
             } catch (e: Exception) {
                 logger.warn(e.message)
                 null
@@ -33,7 +33,7 @@ class ReceiptRedisRepository(
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun replaceState(receiptId: String, state: List<WSResponse>) {
+    fun replaceState(receiptId: String, state: List<Payload>) {
         val k = key(receiptId)
 
         redisTemplate.execute(object : SessionCallback<Unit> {

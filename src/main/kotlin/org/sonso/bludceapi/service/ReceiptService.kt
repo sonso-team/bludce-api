@@ -7,7 +7,7 @@ import org.sonso.bludceapi.dto.request.FinishRequest
 import org.sonso.bludceapi.dto.request.ReceiptUpdateRequest
 import org.sonso.bludceapi.dto.response.FinishResponse
 import org.sonso.bludceapi.dto.response.ReceiptResponse
-import org.sonso.bludceapi.dto.ws.WSResponse
+import org.sonso.bludceapi.dto.ws.Payload
 import org.sonso.bludceapi.entity.UserEntity
 import org.sonso.bludceapi.repository.jpa.ReceiptRepository
 import org.sonso.bludceapi.repository.redis.PayedUserRedisRepository
@@ -122,7 +122,7 @@ class ReceiptService(
         // формируем новое состояние: отмечаем paidBy и освобождаем userId
         val newState = state.map {
             if (it.userId == userId) {
-                WSResponse(
+                Payload(
                     id = it.id,
                     name = it.name,
                     quantity = it.quantity,

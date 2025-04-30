@@ -3,7 +3,7 @@ package org.sonso.bludceapi.dto.ws
 import java.math.BigDecimal
 import java.util.*
 
-data class WSResponse(
+data class Payload(
     val id: UUID,
     val name: String,
     val quantity: Int,
