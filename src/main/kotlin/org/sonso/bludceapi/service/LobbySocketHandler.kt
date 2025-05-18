@@ -10,6 +10,7 @@ import org.sonso.bludceapi.dto.ws.UpdateResponse
 import org.sonso.bludceapi.repository.jpa.ReceiptPositionRepository
 import org.sonso.bludceapi.repository.jpa.ReceiptRepository
 import org.sonso.bludceapi.repository.redis.PayedUserRedisRepository
+import org.sonso.bludceapi.repository.redis.ReceiptInitiatorRedisRepository
 import org.sonso.bludceapi.repository.redis.ReceiptRedisRepository
 import org.sonso.bludceapi.util.toInitPayload
 import org.sonso.bludceapi.util.toWSResponse
@@ -26,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap
 class LobbySocketHandler(
     private val receiptRepository: ReceiptRepository,
     private val receiptRedisRepository: ReceiptRedisRepository,
+    private val initiatorRedisRepository: ReceiptInitiatorRedisRepository,
     private val receiptPositionRepository: ReceiptPositionRepository,
     private val payedUserRedisRepository: PayedUserRedisRepository
 ) : TextWebSocketHandler() {
@@ -70,7 +72,16 @@ class LobbySocketHandler(
         if (uid.toString() !in payedUserRedisRepository.getState(lobbyKey))
             payedUserRedisRepository.addUser(lobbyKey, uid)
 
-        /* 6. Грузим/кешируем позиции */
+        /* 6. Получаем id инициатора */
+        val initiatorId = initiatorRedisRepository
+            .getState(lobbyKey)
+            .ifEmpty {
+                val firstEntered = payedUserRedisRepository.getState(lobbyKey).first()
+                initiatorRedisRepository.replaceState(lobbyKey, firstEntered)
+                firstEntered
+            }
+
+        /* 7. Грузим/кешируем позиции */
         val state = receiptRedisRepository
             .getState(lobbyKey)
             .ifEmpty {
@@ -80,14 +91,14 @@ class LobbySocketHandler(
                     .also { receiptRedisRepository.replaceState(lobbyKey, it) }
             }
 
-        /* 7. Считаем суммы */
+        /* 8. Считаем суммы */
         val (paid, full) = sumRecount(state)
         val amount = if (receipt.receiptType == ReceiptType.EVENLY)
             full.divide(BigDecimal(receipt.personCount))
         else paid
 
-        /* 8. Шлём INIT */
-        session.send(receipt.toInitPayload(uid, amount, full, state))
+        /* 9. Шлём INIT */
+        session.send(receipt.toInitPayload(uid, initiatorId, amount, full, state))
         log.info("User $uid connected to $lobbyKey")
     }
 
@@ -112,6 +123,7 @@ class LobbySocketHandler(
                     receiptRepository.save(it)
                 }
                 receiptRedisRepository.clear(lobbyKey)
+                initiatorRedisRepository.clear(lobbyKey)
             }
             sessions.remove(lobbyKey)
             log.info("Lobby $lobbyKey disposed")

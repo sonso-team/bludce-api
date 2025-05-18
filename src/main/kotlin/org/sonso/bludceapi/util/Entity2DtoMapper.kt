@@ -59,6 +59,7 @@ fun ReceiptEntity.toReceiptResponse() = ReceiptResponse(
 
 fun ReceiptEntity.toInitPayload(
     uid: UUID,
+    initiatorId: String,
     amount: BigDecimal,
     fullAmount: BigDecimal,
     state: List<Payload>
@@ -73,7 +74,7 @@ fun ReceiptEntity.toInitPayload(
 
     return InitResponse(
         userId = uid,
-        initiatorId = initiator.id,
+        initiatorId = UUID.fromString(initiatorId),
         receiptType = receiptType,
         tipsType = tipsType,
         tipsAmount = tipsAmount,
