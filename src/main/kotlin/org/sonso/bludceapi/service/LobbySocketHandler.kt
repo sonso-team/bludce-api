@@ -10,6 +10,7 @@ import org.sonso.bludceapi.dto.ws.UpdateResponse
 import org.sonso.bludceapi.repository.jpa.ReceiptPositionRepository
 import org.sonso.bludceapi.repository.jpa.ReceiptRepository
 import org.sonso.bludceapi.repository.redis.PayedUserRedisRepository
+import org.sonso.bludceapi.repository.redis.ReceiptInitiatorRedisRepository
 import org.sonso.bludceapi.repository.redis.ReceiptRedisRepository
 import org.sonso.bludceapi.util.toInitPayload
 import org.sonso.bludceapi.util.toWSResponse
@@ -26,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap
 class LobbySocketHandler(
     private val receiptRepository: ReceiptRepository,
     private val receiptRedisRepository: ReceiptRedisRepository,
+    private val initiatorRedisRepository: ReceiptInitiatorRedisRepository,
     private val receiptPositionRepository: ReceiptPositionRepository,
     private val payedUserRedisRepository: PayedUserRedisRepository
 ) : TextWebSocketHandler() {
@@ -71,7 +73,13 @@ class LobbySocketHandler(
             payedUserRedisRepository.addUser(lobbyKey, uid)
 
         /* 6. Получаем id инициатора */
-        val initiator = payedUserRedisRepository.getState(lobbyKey).first()
+        val initiatorId = initiatorRedisRepository
+            .getState(lobbyKey)
+            .ifEmpty {
+                val firstEntered = payedUserRedisRepository.getState(lobbyKey).first()
+                initiatorRedisRepository.replaceState(lobbyKey, firstEntered)
+                firstEntered
+            }
 
         /* 7. Грузим/кешируем позиции */
         val state = receiptRedisRepository
@@ -90,7 +98,7 @@ class LobbySocketHandler(
         else paid
 
         /* 9. Шлём INIT */
-        session.send(receipt.toInitPayload(uid, initiator, amount, full, state))
+        session.send(receipt.toInitPayload(uid, initiatorId, amount, full, state))
         log.info("User $uid connected to $lobbyKey")
     }
 
@@ -115,6 +123,7 @@ class LobbySocketHandler(
                     receiptRepository.save(it)
                 }
                 receiptRedisRepository.clear(lobbyKey)
+                initiatorRedisRepository.clear(lobbyKey)
             }
             sessions.remove(lobbyKey)
             log.info("Lobby $lobbyKey disposed")
