@@ -29,7 +29,7 @@ class ReceiptInitiatorRedisRepository(
                 null
             }
         }
-        return value.first()
+        return value.firstOrNull() ?: ""
     }
 
     @Suppress("UNCHECKED_CAST")
