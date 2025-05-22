@@ -34,7 +34,7 @@ import java.util.*
 )
 class ReceiptController(
     private val receiptService: ReceiptService,
-    private val receiptParserService: ReceiptParserService
+    private val receiptParserService: ReceiptParserService,
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
 

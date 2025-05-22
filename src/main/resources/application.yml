@@ -53,10 +53,7 @@ app:
   ocr:
     api-key: K86166788888957
     url: https://api.ocr.space
-
   gigachat:
-    clientid: 265769be-d58e-4a8f-916f-bce3ef4a2e4e
-    scope: GIGACHAT_API_PERS
     auth-key: MjY1NzY5YmUtZDU4ZS00YThmLTkxNmYtYmNlM2VmNGEyZTRlOmYwMjExNzUyLTM1ODQtNDBlNi1iMmRiLTMzNTk2NGEzNDU3Yw==
 
 server:
