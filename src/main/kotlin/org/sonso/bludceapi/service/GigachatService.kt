@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service
 
 @Service
 class GigachatService(
-    private var client: GigaChatClient,
+    private val client: GigaChatClient,
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
 
