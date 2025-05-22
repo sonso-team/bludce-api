@@ -53,6 +53,8 @@ app:
   ocr:
     api-key: K86166788888957
     url: https://api.ocr.space
+  gigachat:
+    auth-key: MjY1NzY5YmUtZDU4ZS00YThmLTkxNmYtYmNlM2VmNGEyZTRlOmYwMjExNzUyLTM1ODQtNDBlNi1iMmRiLTMzNTk2NGEzNDU3Yw==
 
 server:
   port: 7200

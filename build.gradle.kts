@@ -43,6 +43,9 @@ dependencies {
     // Web Socket
     implementation("org.springframework.boot:spring-boot-starter-websocket")
 
+    // GIGACHAT
+    implementation("chat.giga:gigachat-java:0.1.9")
+
     // Mail
     implementation("org.springframework.boot:spring-boot-starter-mail")
 
