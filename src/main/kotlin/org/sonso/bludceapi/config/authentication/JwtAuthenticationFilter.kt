@@ -51,7 +51,7 @@ class JwtAuthenticationFilter(
 
             filterChain.doFilter(request, response)
         } catch (ex: Exception) {
-            logger.error("Ошибка обработки токена", ex)
+            logger.warn("Token validation ended with exception: ${ex.message}")
             response.status = HttpServletResponse.SC_UNAUTHORIZED
             response.contentType = "application/json"
             response.writer.write(
