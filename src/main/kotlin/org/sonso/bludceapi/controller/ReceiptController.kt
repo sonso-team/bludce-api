@@ -65,7 +65,7 @@ class ReceiptController(
         @RequestParam("file") file: MultipartFile
     ): ResponseEntity<List<ReceiptPosition>> {
         log.info("File received: ${file.originalFilename}, size: ${file.size} bytes")
-        return ResponseEntity(receiptParserService.getImageFromText(file), HttpStatus.OK)
+        return ResponseEntity.ok(receiptParserService.getImageFromText(file))
     }
 
     @PutMapping

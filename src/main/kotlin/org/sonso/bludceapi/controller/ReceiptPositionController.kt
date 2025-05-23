@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController
     description = "Основной контроллер по работе с позициями в чеке"
 )
 class ReceiptPositionController(
-    private val receiptPositionService: ReceiptPositionService
+    private val receiptPositionService: ReceiptPositionService,
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
 
