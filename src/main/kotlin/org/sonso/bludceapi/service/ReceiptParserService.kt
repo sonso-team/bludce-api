@@ -26,9 +26,13 @@ class ReceiptParserService(
 
         val ocrText = response.parsedResults?.firstOrNull()?.parsedText.orEmpty()
 
-        val items = gigachatService.correctReceiptPosition(GigachatPrompts.receiptOcrToJsonPosition(ocrText))
+        log.info("Request GIGACHAT for receipt parsing ")
+        val receiptPositions = gigachatService.correctReceiptPosition(GigachatPrompts.receiptOcrToJsonPosition(ocrText))
 
-        log.info("Extracted ${items.size} item(s) from parsed text")
-        return items
+        log.info("Request GIGACHAT correct name of receipt positions")
+        val result = gigachatService.correctReceiptPosition(GigachatPrompts.correctPositionName(receiptPositions))
+
+        log.info("Extracted ${result.size} item(s) from parsed text")
+        return result
     }
 }
