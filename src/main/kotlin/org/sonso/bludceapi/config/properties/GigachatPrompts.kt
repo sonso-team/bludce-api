@@ -36,7 +36,6 @@ object GigachatPrompts {
         $ocrText
     """.trimIndent()
 
-
     fun correctPositionName(positions: List<ReceiptPosition>) = """
         Ты — помощник, который получает список позиций счета в формате JSON.
         Каждая позиция имеет поля:
