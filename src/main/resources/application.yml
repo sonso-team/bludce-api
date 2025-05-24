@@ -5,10 +5,10 @@ spring:
   application:
     name: bludce-api
   datasource:
-    username: bludce
-    password: bludce
-    url: jdbc:postgresql://bludce_db:5432/bludce  # docker-compose
-#    url: jdbc:postgresql://localhost:5700/bludce   # idea
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://bludce_db:5432/${DB_NAME}  # docker-compose
+#    url: jdbc:postgresql://localhost:5700/${DB_NAME}   # idea
     driver-class-name: org.postgresql.Driver
   data:
     redis:
@@ -19,8 +19,8 @@ spring:
   mail:
     host: smtp.yandex.ru
     port: 587
-    username: sonso-team@yandex.ru
-    password: oepzssendkudatzw
+    username: ${MAIL_USER}
+    password: ${MAIL_PASSWORD}
     protocol: smtp
     test-connection: true
     properties:
@@ -44,17 +44,17 @@ spring:
 
 app:
   auth:
-    admin-code: 123123
-    password-life-time: 120000
+    admin-code: ${ADMIN_CODE}
+    password-life-time: ${PASSWORD_LIFE_TIME}
     token:
-      access-life-time: 900000
-      refresh-life-time: 2592000000
-      secret: 59d4556bce780017b631bb3721415e0127d536ebc586aa1e2659382be327d30e167fcbfd5ad1033dd98c6394c9a640a28a118d4f835e0548f200af47700b192a5fb2d0e24d0fe552243424ac58648984e181e804f22dbf110078e664a58e27e4a82ae9d68afee4f7aadb58ccb46ab9c3974db2dfd0160b4bc65dda9e04b2243076140c12aa2c7e96409459461df4aa6cb7137ad5ae05bb81df16999af9b655051f7d9e7f173c042303e949873c57c21a7ef59f7eabb228f417bd4add2c6558e222a44912961dc0dee195fe9bdaf19e8e181fe0cce4f3dadb2747b1a950d0d22a3f68615beec8e42378c33198b406b01361e2130998bdfa375f5c2aa4282b4f97
+      access-life-time: ${ACCESS_LIFE_TIME}
+      refresh-life-time: ${REFRESH_LIFE_TIME}
+      secret: ${SECRET}
   ocr:
-    api-key: K86166788888957
-    url: https://api.ocr.space
+    api-key: ${OCR_KEY}
+    url: ${OCR_URL}
   gigachat:
-    auth-key: MjY1NzY5YmUtZDU4ZS00YThmLTkxNmYtYmNlM2VmNGEyZTRlOmYwMjExNzUyLTM1ODQtNDBlNi1iMmRiLTMzNTk2NGEzNDU3Yw==
+    auth-key: ${GIGACHAT_KEY}
 
 server:
   port: 7200

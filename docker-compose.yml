@@ -5,9 +5,9 @@ services:
     hostname: bludce_db
     restart: always
     environment:
-      POSTGRES_DB: "bludce"
-      POSTGRES_USER: "bludce"
-      POSTGRES_PASSWORD: "bludce"
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - /home/kinoko/postgresql/bludce:/var/lib/postgresql/data
     #      - ./postgresql/bludce_psql:/var/lib/postgresql/data    # Для отладки на windows машине
@@ -36,6 +36,12 @@ services:
     restart: always
     image: bludce-api
     container_name: bludce-api
+    env_file:
+      - .env
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://bludce-db:5432/${DB_NAME}
+      - SPRING_DATASOURCE_USERNAME=${DB_USER}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
     depends_on:
       - bludce-db
     volumes:
