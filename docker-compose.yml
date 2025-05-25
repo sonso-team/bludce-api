@@ -37,8 +37,7 @@ services:
     image: bludce-api
     container_name: bludce-api
     env_file:
-#      - .env                                                       № Для локальной отладки
-      - /home/kinoko/secret/bludce/.env
+      - .env
     depends_on:
       - bludce-db
     volumes:

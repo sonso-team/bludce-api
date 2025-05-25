@@ -8,6 +8,7 @@ env:
   TARGET_DIR: /home/kinoko/bludce/api
   BACKUP_DIR: /home/kinoko/backup/bludce
   JAR_DIR: /tmp/bludce
+  SECRET_FILE: /home/kinoko/secret/bludce/.env
 
 jobs:
   build:
@@ -78,6 +79,10 @@ jobs:
         run: |
           sudo cp -r ${{ env.JAR_DIR }}/* ${{ env.TARGET_DIR }}
           sudo rm -r ${{ env.JAR_DIR }}
+
+      - name: Copy .env to app dir
+        run: |
+          sudo cp ${{ env.SECRET_FILE }} ${{ env.TARGET_DIR }}
 
       - name: Build and deploy with Docker Compose
         run: |
