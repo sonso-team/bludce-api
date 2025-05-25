@@ -45,10 +45,10 @@ spring:
 app:
   auth:
     admin-code: ${ADMIN_CODE}
-    password-life-time: ${PASSWORD_LIFE_TIME}
+    password-life-time: 120000
     token:
-      access-life-time: ${ACCESS_LIFE_TIME}
-      refresh-life-time: ${REFRESH_LIFE_TIME}
+      access-life-time: 900000
+      refresh-life-time: 2592000000
       secret: ${SECRET}
   ocr:
     api-key: ${OCR_KEY}

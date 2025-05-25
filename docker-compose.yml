@@ -37,11 +37,8 @@ services:
     image: bludce-api
     container_name: bludce-api
     env_file:
-      - .env
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://bludce-db:5432/${DB_NAME}
-      - SPRING_DATASOURCE_USERNAME=${DB_USER}
-      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+#      - .env                                                       № Для локальной отладки
+      - /home/kinoko/secret/bludce/.env
     depends_on:
       - bludce-db
     volumes:
